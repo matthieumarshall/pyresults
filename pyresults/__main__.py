@@ -1,81 +1,40 @@
 """Generates standings for Oxon XC League 2024/25 season.
 """
 import os
-import shutil
 import glob
 import math
 import pandas as pd
 from pyresults.utils import calculate_score, read_results
 from pyresults.create_pdf import create_pdf
 from pyresults.create_excel import create_excel
+from pyresults.CONFIG import CATEGORIES, MENS_DIVISIONS, WOMENS_DIVISIONS
+from pyresults.data_gathering import get_round_numbers, clear_and_reset_scores, get_round_results_paths
 
 pd.set_option('display.max_rows', None)
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 pd.set_option('display.max_colwidth', None)
 
-rounds = glob.glob("./data/r*")
-rounds = [r.split("/")[-1] for r in rounds]
+rounds = get_rounds()
+clear_and_reset_scores()
 
-shutil.rmtree("./data/scores/", ignore_errors=True)
-os.makedirs("./data/scores/")
+for round_ in rounds:
+    round_.set_results_paths()
+    
+    round_results_paths = get_round_results_paths(round_number)
+    for results_csv in round_results_paths:
 
-CATEGORIES = ["U9B", "U9G", "U11B", "U11G", "U13B", "U13G", "U15B", "U15G", "U17M"] + \
-    ["U17W", "U20M", "U20W", "SW", "SM"] + \
-    ["WV40", "MV40", "WV50", "MV50", "WV60", "MV60", "WV70", "MV70"]
 
-MENS_DIVISIONS = {
-    "Abingdon AC A": "1",
-    "Swindon Harriers A": "1",
-    "Oxford City AC A": "1",
-    "Headington RR A": "1",
-    "Witney Road Runners A": "1",
-    "Newbury AC A": "1",
-    "White Horse Harriers A": "1",
-    "Alchester Running Club A": "1",
-    "Didcot Runners A": "1",
-    "Swindon Harriers B": "1",
-    "Abingdon AC B": "2",
-    "Witney Road Runners B": "2",
-    "Newbury AC B": "2",
-    "Headington RR B": "2",
-    "Woodstock Harriers AC A": "2",
-    "Eynsham Road Runners A": "2",
-    "Harwell Harriers A": "2",
-    "White Horse Harriers B": "2",
-    "Oxford Tri A": "2",
-    "Radley Athletic Club A": "2",
-    # everyone else is in division 3
-}
 
-WOMENS_DIVISIONS = {
-    "Headington RR A": "1",
-    "Oxford City AC A": "1",
-    "Swindon Harriers A": "1",
-    "Abingdon AC A": "1",
-    "Newbury AC A": "1",
-    "Headington RR B": "1",
-    "White Horse Harriers A": "1",
-    "Witney Road Runners A": "1",
-    "Headington RR C": "1",
-    "Didcot Runners A": "1",
-    "Banbury harriers AC A": "2",
-    "Highworth RC A": "2",
-    "Radley Athletic Club A": "2",
-    "Eynsham Road Runners A": "2",
-    "Woodstock Harriers AC A": "2",
-    "Hook Norton Harriers A": "2",
-    "Oxford Tri A": "2",
-    "Bicester AC A": "2",
-    "Newbury AC B": "2",
-    "Alchester Running Club A": "2",
-    # everyone else is in division 3
-}
+    category_results = CATEGORIES + ["MensOverall", "WomensOverall"]
+    for category in category_results:
+        category_results_csv_path = f"./data/scores/{category}.csv"
 
-for r in rounds:
+
+for r in round_numbers:
     for category in CATEGORIES + ["MensOverall", "WomensOverall"]:
         if not os.path.exists(f"./data/scores/{category}.csv"):
-            pd.DataFrame(columns=["Name", "Club"] + rounds + ["score"]).to_csv(f"./data/scores/{category}.csv", index=False)
+            pd.DataFrame(columns=["Name", "Club"] + round_numbers + ["score"]).to_csv(f"./data/scores/{category}.csv", index=False)
 
     for results_csv in glob.glob(f"./data/{r}/*.csv"):
         df = read_results(results_csv)
@@ -135,7 +94,7 @@ for r in rounds:
 
 for category in CATEGORIES + ["MensOverall", "WomensOverall"]:
     df = pd.read_csv(f"./data/scores/{category}.csv")
-    df["score"] = df.apply(calculate_score, axis=1, args=(len(rounds) - 1,))
+    df["score"] = df.apply(calculate_score, axis=1, args=(len(round_numbers) - 1,))
     df = df.sort_values(by="score", ascending=True)
     # replace all values in column score that are greater than 99999 with empty string
     df["score"] = df["score"].apply(lambda x: "" if x > 99999 else x)
@@ -198,7 +157,7 @@ def calculate_teams(df, category, round_num, team_size = 3):
     team_scores_df = team_scores_df.sort_values(by="score", ascending=True)
     team_scores_df.to_csv(f"./data/{round_num}/teams/{category}.csv", index=False)
 
-for r in rounds:
+for r in round_numbers:
     os.makedirs(f"./data/{r}/teams/", exist_ok=True)
     # Process Junior Teams
     for race in ['U9', 'U13', 'U15']:
@@ -229,14 +188,14 @@ os.makedirs("./data/scores/teams/", exist_ok=True)
 for category in team_categories:
     team_scores = pd.DataFrame(columns=["team"])
     penalties = {}
-    for r in rounds:
+    for r in round_numbers:
         df = pd.read_csv(f"./data/{r}/teams/{category}.csv")[['team', 'score']]
         penalties[r] = df[df['team'] == 'penalty']['score'].iloc[0]
         df = df[df['team'] != 'penalty']
         df = df.rename(columns={'score': r})
         team_scores = pd.merge(left=team_scores, right=df, on=["team"], how="outer")
     team_scores["score"] = team_scores.iloc[:, 1:].sum(axis=1)
-    has_empty = team_scores[rounds].isna().any(axis=1)
+    has_empty = team_scores[round_numbers].isna().any(axis=1)
     team_scores.loc[has_empty, 'score'] = pd.NA
     team_scores = team_scores.sort_values(by="score", ascending=True, na_position='last')
     team_scores = team_scores.fillna("")

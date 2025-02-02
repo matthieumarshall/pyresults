@@ -1,40 +1,8 @@
 from datetime import timedelta
 import pandas as pd
+from pyresults.CONFIG import CATEGORY_MAPPINGS, GENDER_MAPPINGS
 
 GUESTS = ["1635", "1636", "956"] + [str(x) for x in range(1718, 1764)]
-
-# Define constants outside function
-GENDER_MAPPINGS = {
-    "Men": "Male",
-    "U11B": "Male",
-    "U11G": "Female",
-    "Women": "Female"
-}
-
-CATEGORY_MAPPINGS = {
-    ("Male", "Senior Men"): "SM",
-    ("Male", "U20 Men"): "U20M",
-    ("Male", "V40"): "MV40",
-    ("Male", "V50"): "MV50",
-    ("Male", "V60"): "MV60",
-    ("Male", "V70+"): "MV70",
-    ("Female", "Senior Women"): "SW",
-    ("Female", "U20 Women"): "U20W",
-    ("Female", "V40"): "WV40",
-    ("Female", "V50"): "WV50",
-    ("Female", "V60"): "WV60",
-    ("Female", "V70+"): "WV70",
-    ("Male", "U9 Boys"): "U9B",
-    ("Female", "U9 Girls"): "U9G",
-    ("Male", "U11 Boys"): "U11B",
-    ("Female", "U11 Girls"): "U11G",
-    ("Male", "U13 Boys"): "U13B",
-    ("Female", "U13 Girls"): "U13G",
-    ("Male", "U15 Boys"): "U15B",
-    ("Female", "U15 Girls"): "U15G",
-    ("Male", "U17 Boys"): "U17M",
-    ("Female", "U17 Girls"): "U17W",
-}
 
 def map_category(row, race_name: str = "") -> str:
     category = row['Category'].strip()
