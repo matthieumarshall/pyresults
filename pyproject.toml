@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyresults"
+version = "0.1.0"
+description = "Pyresults"
+authors = [{ name = "Matthieu Marshall"}]
+dependencies = ["numpy", "requests"]
+requires-python = ">=3.11"
+
+[tool.setuptools]
+packages = ["pyresults"]
