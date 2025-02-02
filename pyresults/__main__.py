@@ -5,9 +5,9 @@ import shutil
 import glob
 import math
 import pandas as pd
-from pyresults.twentyfour_twentyfive.utils import calculate_score, read_results
-from pyresults.twentyfour_twentyfive.create_pdf import create_pdf
-from pyresults.twentyfour_twentyfive.create_excel import create_excel
+from pyresults.utils import calculate_score, read_results
+from pyresults.create_pdf import create_pdf
+from pyresults.create_excel import create_excel
 
 pd.set_option('display.max_rows', None)
 pd.set_option('display.max_columns', None)
