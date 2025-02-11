@@ -1,7 +1,7 @@
 from datetime import timedelta
 import pandas as pd
 
-GUESTS = ["1635", "1636", "956"] + [str(x) for x in range(1718, 1764)]
+GUESTS = ["1635", "1636", "956", "1652"] + [str(x) for x in range(1718, 1764)]
 
 # Define constants outside function
 GENDER_MAPPINGS = {
@@ -30,6 +30,8 @@ CATEGORY_MAPPINGS = {
     ("Female", "U11 Girls"): "U11G",
     ("Male", "U13 Boys"): "U13B",
     ("Female", "U13 Girls"): "U13G",
+    ("Male", "U13B"): "U13B",
+    ("Female", "U13G"): "U13G",
     ("Male", "U15 Boys"): "U15B",
     ("Female", "U15 Girls"): "U15G",
     ("Male", "U17 Boys"): "U17M",
@@ -96,6 +98,9 @@ def handle_exceptions(df, race_name, round_num):
     if race_name == "Women" and round_num == "r3":
         # remove Cicely Arthur was accidentally included
         df = df[df["Race No"] != "1006"]
+    elif race_name == "Women" and round_num == "r4":
+        # remove Becky Window was accidentally included
+        df = df[df["Race No"] != "51"]
     elif race_name == "Men" and round_num == "r3":
         # add David Cantwell and Troy Southall
         # and Jan Rasmussen (position pending)
