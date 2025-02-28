@@ -65,8 +65,8 @@ def calculate_score(row, rounds_to_count=4):
 
 def read_results(path):
 
-    def clean_name(name):
-        return name.replace("(2C)", "").strip()
+    def clean_name(name) -> str:
+        return name.replace("(2C)", "").replace("÷", "ö").strip()
 
     try:
         df = pd.read_csv(path, encoding="utf-16")
