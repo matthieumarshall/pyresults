@@ -47,6 +47,7 @@ include = ["pyresults"]
 ignore = [".old"]
 pythonVersion = "3.10"
 typeCheckingMode = "standard"
+extraPaths = ["pyresults"]
 
 [tool.coverage.run]
 omit = ["pyresults"]

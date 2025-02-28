@@ -1,3 +1,5 @@
+GUESTS = ["1635", "1636", "956", "1652"] + [str(x) for x in range(1718, 1764)]
+
 CATEGORIES = ["U9B", "U9G", "U11B", "U11G", "U13B", "U13G", "U15B", "U15G", "U17M"] + \
     ["U17W", "U20M", "U20W", "SW", "SM"] + \
     ["WV40", "MV40", "WV50", "MV50", "WV60", "MV60", "WV70", "MV70"]
