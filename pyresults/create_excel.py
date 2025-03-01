@@ -15,8 +15,6 @@ def create_excel():
 
             # Extract the base name of the file to use as the sheet name
             sheet_name = file.split('.')[-2].split("/")[-1] + "_individual"  # Removes .csv extension
-            if sheet_name in ["MensOverall_individual", "WomensOverall_individual"]:
-                sheet_name += "_top_10"
             # Write the DataFrame to a specific sheet
             df.to_excel(writer, sheet_name=sheet_name, index=False)
 
