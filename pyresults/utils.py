@@ -1,6 +1,6 @@
 from datetime import timedelta
 import pandas as pd
-from pyresults.CONFIG import CATEGORY_MAPPINGS, GENDER_MAPPINGS
+from pyresults.config import CATEGORY_MAPPINGS, GENDER_MAPPINGS
 
 
 

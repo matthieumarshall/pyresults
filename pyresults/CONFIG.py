@@ -83,3 +83,28 @@ CATEGORY_MAPPINGS = {
     ("Male", "U17 Boys"): "U17M",
     ("Female", "U17 Girls"): "U17W",
 }
+
+RACE_MAPPINGS = {
+    "U9B": "U9",
+    "U9G": "U9",
+    "U11B": "U11B",
+    "U11G": "U11G",
+    "U13B": "U13",
+    "U13G": "U13",
+    "U15B": "U15",
+    "U15G": "U15",
+    "U17M": "U17",
+    "U17W": "U17",
+    "U20M": "Men",
+    "U20W": "Women",
+    "SW": "Women",
+    "SM": "Men",
+    "WV40": "Women",
+    "MV40": "Men",
+    "WV50": "Women",
+    "MV50": "Men",
+    "WV60": "Women",
+    "MV60": "Men",
+    "WV70": "Women",
+    "MV70": "Men"
+}

@@ -1,5 +1,5 @@
 from pyresults.race_result import RaceResult
-import os
+import glob
 
 
 class Round:
@@ -9,7 +9,7 @@ class Round:
         self.race_results : list[RaceResult] = self.get_race_results()
 
     def get_race_result_paths(self) -> list[str]:
-        files = os.listdir(f"./input_data/{self.round_number}")
+        files = glob.glob(f"./input_data/{self.round_number}/*.csv")
         return files
     
     def get_race_results(self) -> list[RaceResult]:

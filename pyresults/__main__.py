@@ -10,7 +10,7 @@ from argparse import ArgumentParser
 # from pyresults.utils import calculate_score, read_results
 # from pyresults.create_pdf import create_pdf
 # from pyresults.create_excel import create_excel
-# from pyresults.CONFIG import CATEGORIES, MENS_DIVISIONS, WOMENS_DIVISIONS
+# from pyresults.config import CATEGORIES, MENS_DIVISIONS, WOMENS_DIVISIONS
 # from pyresults.data_gathering import get_round_numbers, clear_and_reset_scores, get_round_results_paths
 
 # pd.set_option('display.max_rows', None)
