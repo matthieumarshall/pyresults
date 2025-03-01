@@ -171,17 +171,21 @@ class Results:
                 round_result_exists = os.path.exists(round_result_path)
                 if not round_result_exists:
                     continue
-                round_score_already_present = round_number in scores_df.columns
-                if round_score_already_present:
-                    continue
                 rounds_to_count += 1
                 round_result = pd.read_csv(round_result_path)
                 penalties[round_number] = round_result[round_result['team'] == 'penalty']
+                round_score_already_present = round_number in scores_df.columns
+                if round_score_already_present:
+                    continue
                 round_result = round_result[round_result['team'] != 'penalty']
                 round_result = round_result.rename(columns={'score': round_number}).drop("club", axis=1)
                 scores_df = pd.merge(left=scores_df, right=round_result, on=["team"], how="outer")
-            
-            # Fill null scores with penalties from each round
+
+            # Calculate total scores
+            round_columns = [col for col in scores_df.columns if col.startswith('r')]
+            scores_df["score"] = scores_df[round_columns].sum(axis=1)
+
+            # Apply penalty rules for each round
             for round_number in range(1, rounds_to_count + 1):
                 round_col = f"r{round_number}"
                 if round_col in scores_df.columns:
@@ -190,14 +194,10 @@ class Results:
                     if round_col in penalties and not penalties[round_col].empty:
                         penalty_value = penalties[round_col]['score'].values[0]
                     
-                    # Replace NaN values with penalty value if available, otherwise leave as NaN
+                    # Replace any score that equals the penalty value with null
                     if penalty_value is not None:
-                        scores_df[round_col] = scores_df[round_col].fillna(penalty_value)
-            
-            # Calculate total scores
-            round_columns = [col for col in scores_df.columns if col.startswith('r')]
-            scores_df["score"] = scores_df[round_columns].sum(axis=1)
-            
+                        scores_df.loc[scores_df[round_col] == penalty_value, round_col] = None
+
             scores_df = scores_df.sort_values(by="score", ascending=True)
             round_numbers = [f"r{i}" for i in range(1, rounds_to_count + 1)]
             has_empty = scores_df[round_numbers].isna().any(axis=1)
@@ -209,8 +209,10 @@ class Results:
             # add division column to team scores
             if team_category == "Men":
                 scores_df["division"] = scores_df["team"].apply(lambda x: MENS_DIVISIONS.get(x, "3"))
+                scores_df = scores_df.sort_values(by=["division", "score"], ascending=True, na_position='last')
             if team_category == "Women":
                 scores_df["division"] = scores_df["team"].apply(lambda x: WOMENS_DIVISIONS.get(x, "3"))
+                scores_df = scores_df.sort_values(by=["division", "score"], ascending=True, na_position='last')
             # Reorder columns to put "score" at the end
             cols = [col for col in scores_df.columns if col != "score"] + ["score"]
             scores_df = scores_df[cols]

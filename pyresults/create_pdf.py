@@ -181,7 +181,7 @@ def create_pdf():
             category = f"{category[:-1]} Women"
         elif category.endswith("Overall"):
             gender = category.split("Overall")[0]
-            category = f"{gender} Overall (top 10)"
+            category = f"{gender} Overall"
             suffix = ""
         pdf.add_table(f"{category} {suffix}", df, first_page=table_no == 0, string_columns=[1] if "teams" in standings_csv else [1,2])
 
