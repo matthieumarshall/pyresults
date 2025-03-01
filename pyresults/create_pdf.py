@@ -131,13 +131,13 @@ def create_pdf():
         './data/scores/WV50.csv',
         './data/scores/WV60.csv',
         './data/scores/WV70.csv',
-        './data/scores/teams/SW.csv',
+        './data/scores/teams/Women.csv',
         './data/scores/SM.csv',
         './data/scores/MV40.csv',
         './data/scores/MV50.csv',
         './data/scores/MV60.csv',
         './data/scores/MV70.csv',
-        './data/scores/teams/SM.csv',
+        './data/scores/teams/Men.csv',
         './data/scores/WomensOverall.csv',
         './data/scores/MensOverall.csv',
     ]
@@ -155,15 +155,15 @@ def create_pdf():
 
         category = standings_csv.split("/")[-1].split(".")[0]
         category = category.replace("MV", "Mens Vet").replace("WV", "Womens Vet")
-        if category == "SM" and suffix == "Individuals":
+        if category == "Men" and suffix == "Individuals":
             category = "Senior Men"
-        if category == "SM" and suffix == "Teams":
+        if category == "Men" and suffix == "Teams":
             category = "Mens"
             df = df.sort_values(['division', 'score'])
             df['Pos'] = df.groupby('division').cumcount() + 1
-        elif category == "SW" and suffix == "Individuals":
+        elif category == "Women" and suffix == "Individuals":
             category = "Senior Women"
-        elif category == "SW" and suffix == "Teams":
+        elif category == "Women" and suffix == "Teams":
             category = "Womens"
             df = df.sort_values(['division', 'score'])
             df['Pos'] = df.groupby('division').cumcount() + 1
@@ -171,6 +171,10 @@ def create_pdf():
             category = f"{category[:-1]} Boys"
         elif category.endswith("G"):
             category = f"{category[:-1]} Girls"
+        elif category == "SW":
+            category = "Senior Womens"
+        elif category == "SM":
+            category = "Senior Mens"
         elif category.endswith("M"):
             category = f"{category[:-1]} Men"
         elif category.endswith("W"):

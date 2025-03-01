@@ -77,6 +77,8 @@ CATEGORY_MAPPINGS = {
     ("Male", "U11 Boys"): "U11B",
     ("Female", "U11 Girls"): "U11G",
     ("Male", "U13 Boys"): "U13B",
+    ("Male", "U13B"): "U13B",
+    ("Female", "U13G"): "U13G",
     ("Female", "U13 Girls"): "U13G",
     ("Male", "U15 Boys"): "U15B",
     ("Female", "U15 Girls"): "U15G",

@@ -23,7 +23,7 @@ class RaceResult:
         self.df = self.df[~self.df['Race No'].isin(GUESTS)]
         self.df = self.reset_positions(self.df)
         self.handle_exceptions()
-        self.df["Category"] = self.df.apply(self.map_category, axis=1)
+        self.df["Category"] = self.df.apply(lambda row: self.map_category(row, self.race_name), axis=1)
         self.persist_results()
         self.produce_team_results()
 
@@ -114,19 +114,23 @@ class RaceResult:
         
         # Single dictionary lookup
         if gender is not None and isinstance(gender, str):
-            return CATEGORY_MAPPINGS.get((gender, category), "")
-        return ""
+            try:
+                return CATEGORY_MAPPINGS[(gender, category)]
+            except KeyError:
+                raise Exception(f"Error with getting category for {race_name= } {gender= } {category= }")
+        else:
+            raise Exception(f"Error with getting category for {race_name= } {gender= } {category= }")
 
     def persist_results(self) -> None:
         self.df.to_csv(f"./data/{self.round_num}/{self.race_name}.csv", index=False)
 
     def produce_team_results(self) -> None:
         team_races = {
+            "U9": ("U9B", "U9G"),
             "Men": ("Men",),
             "Women": ("Women",),
             "U11B": ("U11B",),
             "U11G": ("U11G",),
-            "U9": ("U9B", "U9G"),
             "U13": ("U13B", "U13G"),
             "U15": ("U15B", "U15G"),
             "U17": ("U17M", "U17W")
@@ -152,6 +156,12 @@ class RaceResult:
     @staticmethod
     def calculate_teams(df, category, round_num, team_size = 3):
         """Calculate junior team scores based on gender positions"""
+        if category in ["U9B", "U9G", "U13B", "U13G", "U15B", "U15G", "U17M", "U17W"]:
+            # if category column is null, then filter on gender
+            if not (df['Category'] == category).any():
+                df = df[df["Gender"] == {"G":"Female", "B":"Male", "M": "Male", "W": "Female"}[category[-1]]]
+            else:
+                df = df[df['Category'] == category].sort_values('Gen Pos')
         # calculate penalty score as one plus last gender position
         penalty_score = df['Gen Pos'].max() + 1
         # Group by club and sort by gender position
@@ -159,7 +169,6 @@ class RaceResult:
         clubs = df['Club'].unique()
         for club in clubs:
             club_runners = df[df['Club'] == club].sort_values('Gen Pos')
-
             # Create teams of 3
             num_complete_teams = len(club_runners) // team_size
             for team_num in range(num_complete_teams):

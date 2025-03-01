@@ -1,8 +1,7 @@
 from pyresults.round import Round
 from pyresults.create_excel import create_excel
 from pyresults.create_pdf import create_pdf
-from pyresults.config import CATEGORIES, RACE_MAPPINGS
-from concurrent.futures import ThreadPoolExecutor
+from pyresults.config import CATEGORIES, RACE_MAPPINGS, MENS_DIVISIONS, WOMENS_DIVISIONS
 import os
 import pandas as pd
 
@@ -28,12 +27,8 @@ class Results:
         create_excel_: bool,
         create_pdf_: bool
     ):
-        with ThreadPoolExecutor() as executor:
-            futures = [
-                executor.submit(Round, round_to_process) for round_to_process in rounds_to_process
-            ]
-            for future in futures:
-                future.result()
+        for round_to_process in rounds_to_process:
+            Round(round_to_process)
         cls.update_individual_scores()
         cls.update_overall_scores()
         cls.update_team_scores()
@@ -149,23 +144,74 @@ class Results:
     @classmethod
     def update_team_scores(cls):
         for team_category in [
+            "U13B",
+            "U13G",
             "Men",
             "Women",
             "U9B",
             "U9G",
             "U11B",
             "U11G",
-            "U13B",
-            "U13G",
             "U15B",
             "U15G",
             "U17M",
             "U17W"
         ]:
-            scores_path = f"./data/scores/{team_category}.csv"
+            scores_path = f"./data/scores/teams/{team_category}.csv"
             if not os.path.exists(scores_path):
                 pd.DataFrame(
-                    columns=["Team"] + cls.round_numbers + ["score"]).to_csv(scores_path,
+                    columns=["team"] + ["score"]).to_csv(scores_path,
                     index=False
                 )
+            scores_df = pd.read_csv(scores_path)
+            rounds_to_count = 0
+            penalties = {}
+            for round_number in cls.round_numbers:
+                round_result_path = f"./data/{round_number}/teams/{team_category}.csv" # f"./data/{round_num}/teams/{category}.csv"
+                round_result_exists = os.path.exists(round_result_path)
+                if not round_result_exists:
+                    continue
+                round_score_already_present = round_number in scores_df.columns
+                if round_score_already_present:
+                    continue
+                rounds_to_count += 1
+                round_result = pd.read_csv(round_result_path)
+                penalties[round_number] = round_result[round_result['team'] == 'penalty']
+                round_result = round_result[round_result['team'] != 'penalty']
+                round_result = round_result.rename(columns={'score': round_number}).drop("club", axis=1)
+                scores_df = pd.merge(left=scores_df, right=round_result, on=["team"], how="outer")
+            
+            # Fill null scores with penalties from each round
+            for round_number in range(1, rounds_to_count + 1):
+                round_col = f"r{round_number}"
+                if round_col in scores_df.columns:
+                    # Get penalty value for the current round if available
+                    penalty_value = None
+                    if round_col in penalties and not penalties[round_col].empty:
+                        penalty_value = penalties[round_col]['score'].values[0]
+                    
+                    # Replace NaN values with penalty value if available, otherwise leave as NaN
+                    if penalty_value is not None:
+                        scores_df[round_col] = scores_df[round_col].fillna(penalty_value)
+            
+            # Calculate total scores
+            round_columns = [col for col in scores_df.columns if col.startswith('r')]
+            scores_df["score"] = scores_df[round_columns].sum(axis=1)
+            
+            scores_df = scores_df.sort_values(by="score", ascending=True)
+            round_numbers = [f"r{i}" for i in range(1, rounds_to_count + 1)]
+            has_empty = scores_df[round_numbers].isna().any(axis=1)
+            scores_df.loc[has_empty, 'score'] = pd.NA
+            scores_df = scores_df.sort_values(by="score", ascending=True, na_position='last')
+            scores_df = scores_df.fillna("")
+            
 
+            # add division column to team scores
+            if team_category == "Men":
+                scores_df["division"] = scores_df["team"].apply(lambda x: MENS_DIVISIONS.get(x, "3"))
+            if team_category == "Women":
+                scores_df["division"] = scores_df["team"].apply(lambda x: WOMENS_DIVISIONS.get(x, "3"))
+            # Reorder columns to put "score" at the end
+            cols = [col for col in scores_df.columns if col != "score"] + ["score"]
+            scores_df = scores_df[cols]
+            scores_df.to_csv(scores_path, index=False)
