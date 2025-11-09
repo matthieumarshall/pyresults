@@ -13,4 +13,3 @@
     ```
     uv sync --all-extras
     ```
-

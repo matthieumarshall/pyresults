@@ -1,7 +1,7 @@
 from pyresults.round import Round
 from pyresults.create_excel import create_excel
 from pyresults.create_pdf import create_pdf
-from pyresults.config import CATEGORIES, RACE_MAPPINGS, MENS_DIVISIONS, WOMENS_DIVISIONS
+from pyresults.CONFIG import CATEGORIES, RACE_MAPPINGS, MENS_DIVISIONS, WOMENS_DIVISIONS
 import os
 import pandas as pd
 

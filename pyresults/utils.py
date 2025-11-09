@@ -1,7 +1,6 @@
 from datetime import timedelta
 import pandas as pd
-from pyresults.config import CATEGORY_MAPPINGS, GENDER_MAPPINGS
-
+from pyresults.CONFIG import CATEGORY_MAPPINGS, GENDER_MAPPINGS, GUESTS
 
 
 def map_category(row, race_name: str = "") -> str:

@@ -1,21 +1,21 @@
 import pandas as pd
 import math
 from pandas import DataFrame
-from pyresults.config import GUESTS
-from pyresults.config import CATEGORY_MAPPINGS, GENDER_MAPPINGS
+from pyresults.CONFIG import GUESTS
+from pyresults.CONFIG import CATEGORY_MAPPINGS, GENDER_MAPPINGS
 from datetime import timedelta
-import os
+from pathlib import Path
 
 class RaceResult:
     def __init__(self, result_file_path):
-        self.result_file_path = result_file_path
+        self.result_file_path = Path(result_file_path)
         self.df: DataFrame = self.read_file_to_df()
         self.clean_names()
-        self.race_name = result_file_path.split(".")[-2].split("/")[-1]
-        self.round_num = result_file_path.split(".")[-2].split("/")[-2]
+        self.race_name = self.result_file_path.stem
+        self.round_num = self.result_file_path.parent.name
         
-        if not os.path.exists(f"./data/{self.round_num}/teams"):
-            os.makedirs(f"./data/{self.round_num}/teams")
+        output_teams_dir = Path(__file__).parent.parent / "data" / self.round_num / "teams"
+        output_teams_dir.mkdir(parents=True, exist_ok=True)
         
         self.df["Race No"] = self.df["Race No"].astype(str)
         self.df['Pos'] = pd.to_numeric(self.df['Pos'], errors='coerce')
@@ -122,7 +122,8 @@ class RaceResult:
             raise Exception(f"Error with getting category for {race_name= } {gender= } {category= }")
 
     def persist_results(self) -> None:
-        self.df.to_csv(f"./data/{self.round_num}/{self.race_name}.csv", index=False)
+        output_path = Path(__file__).parent.parent / "data" / self.round_num / f"{self.race_name}.csv"
+        self.df.to_csv(output_path, index=False)
 
     def produce_team_results(self) -> None:
         team_races = {
@@ -212,4 +213,5 @@ class RaceResult:
         )
         team_scores_df = pd.DataFrame(teams)
         team_scores_df = team_scores_df.sort_values(by="score", ascending=True)
-        team_scores_df.to_csv(f"./data/{round_num}/teams/{category}.csv", index=False)
+        output_path = Path(__file__).parent.parent / "data" / round_num / "teams" / f"{category}.csv"
+        team_scores_df.to_csv(output_path, index=False)
