@@ -8,6 +8,13 @@ class Round:
         self.round_number = round_number
         self.race_result_paths: list[str] = self.get_race_result_paths()
         self.race_results : list[RaceResult] = self.get_race_results()
+        # process each RaceResult explicitly so constructors have no hidden IO
+        for rr in self.race_results:
+            try:
+                rr.process()
+            except Exception:
+                # keep processing other races even if one fails
+                raise
 
     def get_race_result_paths(self) -> list[str]:
         base_dir = Path(__file__).parent.parent

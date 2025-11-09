@@ -1,6 +1,12 @@
 from datetime import timedelta
 import pandas as pd
+from pathlib import Path
 from pyresults.CONFIG import CATEGORY_MAPPINGS, GENDER_MAPPINGS, GUESTS
+
+
+def clean_name(name) -> str:
+    """Normalize athlete name strings."""
+    return name.replace("(2C)", "").replace("÷", "ö").strip()
 
 
 def map_category(row, race_name: str = "") -> str:
@@ -29,10 +35,6 @@ def calculate_score(row, rounds_to_count=4):
     return total_score_sum
 
 def read_results(path):
-
-    def clean_name(name) -> str:
-        return name.replace("(2C)", "").replace("÷", "ö").strip()
-
     try:
         df = pd.read_csv(path, encoding="utf-16")
         df['Race No']
@@ -41,8 +43,9 @@ def read_results(path):
     # Clean names by removing (2C)
     df['Name'] = df['Name'].apply(clean_name)
 
-    race_name = path.split(".")[-2].split("/")[-1]
-    round_num = path.split(".")[-2].split("/")[-2]
+    p = Path(path)
+    race_name = p.stem
+    round_num = p.parent.name
     df["Race No"] = df["Race No"].astype(str)
     df['Pos'] = pd.to_numeric(df['Pos'], errors='coerce')
     df['Time'] = pd.to_timedelta(df['Time'])

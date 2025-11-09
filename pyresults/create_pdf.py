@@ -1,6 +1,7 @@
 from fpdf import FPDF
 import pandas as pd
 from datetime import datetime
+from pathlib import Path
 
 class PDF(FPDF):
     def __init__(self):
@@ -44,8 +45,10 @@ class PDF(FPDF):
         space_remaining = self.h - self.get_y() - self.b_margin
         return table_height <= space_remaining
 
-    def add_table(self, title, df, first_page=False, string_columns=[1,2]):
-        # In your existing code, before setting font:
+    def add_table(self, title, df, first_page=False, string_columns=None):
+        if string_columns is None:
+            string_columns = [1, 2]
+
         if first_page:
             self.ln(1)
         elif not self.will_table_fit(df, self.font_size + 2):
@@ -90,10 +93,10 @@ class PDF(FPDF):
             for i, cell in enumerate(row):
                 if title in ("Mens Teams", "Womens Teams") and row['Pos'] in [1,2] and row['division'] in [2,3]:
                     self.set_fill_color(144, 238, 144)
-                    self.cell(col_widths[i], row_height, str(cell), 1, 0, 'C', 1)
+                    self.cell(col_widths[i], row_height, str(cell), 1, 0, 'C', True)
                 elif title in ("Mens Teams", "Womens Teams")and row['Pos'] in [9,10] and row['division'] in [1,2]:
                     self.set_fill_color(255, 182, 193)
-                    self.cell(col_widths[i], row_height, str(cell), 1, 0, 'C', 1)
+                    self.cell(col_widths[i], row_height, str(cell), 1, 0, 'C', True)
                 else:
                     self.cell(col_widths[i], row_height, str(cell), 1, 0, 'C')
             self.ln(row_height)
@@ -143,7 +146,8 @@ def create_pdf():
     ]
 
     for table_no, standings_csv in enumerate(tables_to_add):
-        suffix = "Teams" if "teams" in standings_csv else "Individuals"
+        path = Path(standings_csv)
+        suffix = "Teams" if "teams" in path.parts else "Individuals"
 
         df = pd.read_csv(standings_csv)
         df.insert(0, 'Pos', range(1, len(df) + 1))
@@ -153,7 +157,7 @@ def create_pdf():
             df[col] = pd.to_numeric(df[col], errors='coerce')
             df[col] = df[col].apply(lambda x: int(x) if pd.notnull(x) else "")
 
-        category = standings_csv.split("/")[-1].split(".")[0]
+        category = Path(standings_csv).stem
         category = category.replace("MV", "Mens Vet").replace("WV", "Womens Vet")
         if category == "Men" and suffix == "Individuals":
             category = "Senior Men"
@@ -183,10 +187,15 @@ def create_pdf():
             gender = category.split("Overall")[0]
             category = f"{gender} Overall"
             suffix = ""
-        pdf.add_table(f"{category} {suffix}", df, first_page=table_no == 0, string_columns=[1] if "teams" in standings_csv else [1,2])
+        pdf.add_table(
+            f"{category} {suffix}",
+            df,
+            first_page=table_no == 0,
+            string_columns=[1] if "teams" in path.parts else [1, 2]
+        )
 
     # Save the PDF
-    pdf.output("./data/OxfordshireCrossCountryLeagueStandings.pdf")
+    pdf.output(str(Path("./data") / "OxfordshireCrossCountryLeagueStandings.pdf"))
 
 if __name__ == "__main__":
     create_pdf()

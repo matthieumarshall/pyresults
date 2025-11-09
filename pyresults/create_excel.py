@@ -1,5 +1,6 @@
 import pandas as pd
 import glob
+from pathlib import Path
 
 def create_excel():
 
@@ -14,7 +15,7 @@ def create_excel():
             df = pd.read_csv(file)
 
             # Extract the base name of the file to use as the sheet name
-            sheet_name = file.split('.')[-2].split("/")[-1] + "_individual"  # Removes .csv extension
+            sheet_name = Path(file).stem + "_individual"
             # Write the DataFrame to a specific sheet
             df.to_excel(writer, sheet_name=sheet_name, index=False)
 
@@ -23,7 +24,7 @@ def create_excel():
             df = pd.read_csv(file)
 
             # Extract the base name of the file to use as the sheet name
-            sheet_name = file.split('.')[-2].split("/")[-1] + "_teams"
+            sheet_name = Path(file).stem + "_teams"
             if sheet_name == "SM_teams":
                 sheet_name = "Mens_teams"
             elif sheet_name == "SW_teams":
