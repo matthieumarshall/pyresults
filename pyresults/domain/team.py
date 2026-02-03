@@ -27,7 +27,8 @@ class Team:
         """Add an athlete to the team."""
         if athlete.club != self.club:
             raise ValueError(
-                f"Athlete {athlete.name} club '{athlete.club}' does not match team club '{self.club}'"
+                f"Athlete {athlete.name} club '{athlete.club}' does not match "
+                f"team club '{self.club}'"
             )
         self.athletes.append(athlete)
 

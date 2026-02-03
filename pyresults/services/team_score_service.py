@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 
 from pyresults.config import CompetitionConfig
-from pyresults.domain import CategoryType, Score
+from pyresults.domain import Score
 from pyresults.repositories import IRaceResultRepository
 
 from .team_scoring_service import TeamScoringService
@@ -58,8 +58,6 @@ class TeamScoreService:
         if not category.is_team_category():
             logger.warning(f"Category {category_code} is not a team category, skipping")
             return
-
-        race_name = category.race_name
 
         # Build team score map
         score_map: dict[str, Score] = {}
@@ -113,13 +111,12 @@ class TeamScoreService:
         # Save updated scores
         self._save_team_scores(category_code, team_scores)
         logger.info(
-            f"Saved {len(team_scores)} team scores for {category_code} ({rounds_processed} rounds processed)"
+            f"Saved {len(team_scores)} team scores for {category_code} "
+            f"({rounds_processed} rounds processed)"
         )
 
     def update_all_team_categories(self) -> None:
         """Update scores for all team categories."""
-        team_categories = self.config.category_config.get_categories_by_type(CategoryType.TEAM)
-
         # Note: We need to process team categories that match the original naming
         # The original code used race names with specific mappings
         team_category_codes = [
@@ -202,4 +199,4 @@ class TeamScoreService:
             logger.debug(f"Saved team scores to {output_path}")
         except Exception as e:
             logger.error(f"Failed to save team scores to {output_path}: {e}")
-            raise OSError(f"Failed to save team scores to {output_path}: {e}")
+            raise OSError(f"Failed to save team scores to {output_path}: {e}") from e

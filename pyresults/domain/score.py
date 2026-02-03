@@ -58,4 +58,7 @@ class Score:
         return f"{self.name}: {total} pts"
 
     def __repr__(self) -> str:
-        return f"Score(name='{self.name}', category='{self.category}', rounds={len(self.round_scores)})"
+        return (
+            f"Score(name='{self.name}', category='{self.category}', "
+            f"rounds={len(self.round_scores)})"
+        )

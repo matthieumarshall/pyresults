@@ -11,11 +11,11 @@ repos:
       # Run the formatter.
       - id: ruff-format
 
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.13.0
+  - repo: local
     hooks:
-      - id: mypy
-        additional_dependencies:
-          - pandas-stubs
-          - types-python-dateutil
-        args: [--ignore-missing-imports, --python-version=3.10]
+      - id: ty
+        name: ty
+        entry: uv run ty check
+        language: system
+        types: [python]
+        pass_filenames: false

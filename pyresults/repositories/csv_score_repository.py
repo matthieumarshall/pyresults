@@ -67,7 +67,7 @@ class CsvScoreRepository(IScoreRepository):
             return scores
         except Exception as e:
             logger.error(f"Failed to load scores from {file_path}: {e}")
-            raise OSError(f"Failed to load scores from {file_path}: {e}")
+            raise OSError(f"Failed to load scores from {file_path}: {e}") from e
 
     def save_scores(self, category: str, scores: list[Score]) -> None:
         """Save scores for a category to CSV file.
@@ -118,7 +118,7 @@ class CsvScoreRepository(IScoreRepository):
             logger.info(f"Successfully saved {len(scores)} scores for {category} to {file_path}")
         except Exception as e:
             logger.error(f"Failed to save scores to {file_path}: {e}")
-            raise OSError(f"Failed to save scores to {file_path}: {e}")
+            raise OSError(f"Failed to save scores to {file_path}: {e}") from e
 
     def exists(self, category: str) -> bool:
         """Check if scores exist for a category.

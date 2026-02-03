@@ -78,7 +78,7 @@ class PdfOutputGenerator(IOutputGenerator):
             logger.info(f"Successfully saved PDF file to {self.output_path}")
         except Exception as e:
             logger.error(f"Failed to save PDF file to {self.output_path}: {e}")
-            raise OSError(f"Failed to save PDF file to {self.output_path}: {e}")
+            raise OSError(f"Failed to save PDF file to {self.output_path}: {e}") from e
 
     def _get_categories_to_include(self) -> list[str]:
         """Get ordered list of category codes to include in PDF.
@@ -146,7 +146,7 @@ class PdfOutputGenerator(IOutputGenerator):
 
         # Add adult teams
         if teams_dir.exists():
-            for individual_code, team_code in adult_teams:
+            for _individual_code, team_code in adult_teams:
                 team_csv_path = teams_dir / f"{team_code}.csv"
                 if team_csv_path.exists():
                     categories.append(f"Team {team_code}")

@@ -105,7 +105,8 @@ class IndividualScoreService:
         # Save updated scores
         self.score_repo.save_scores(category_code, updated_scores)
         logger.info(
-            f"Saved {len(updated_scores)} scores for {category_code} ({rounds_processed} rounds processed)"
+            f"Saved {len(updated_scores)} scores for {category_code} "
+            f"({rounds_processed} rounds processed)"
         )
 
     def update_all_categories(self) -> None:

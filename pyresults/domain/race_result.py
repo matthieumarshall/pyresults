@@ -52,4 +52,7 @@ class RaceResult:
         return f"{self.race_name} {self.round_number} ({len(self.athletes)} athletes)"
 
     def __repr__(self) -> str:
-        return f"RaceResult(race='{self.race_name}', round='{self.round_number}', athletes={len(self.athletes)})"
+        return (
+            f"RaceResult(race='{self.race_name}', "
+            f"round='{self.round_number}', athletes={len(self.athletes)})"
+        )

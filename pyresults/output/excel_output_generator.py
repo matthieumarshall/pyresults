@@ -61,7 +61,7 @@ class ExcelOutputGenerator(IOutputGenerator):
             logger.info(f"Successfully saved Excel file to {self.output_path}")
         except Exception as e:
             logger.error(f"Failed to save Excel file to {self.output_path}: {e}")
-            raise OSError(f"Failed to save Excel file to {self.output_path}: {e}")
+            raise OSError(f"Failed to save Excel file to {self.output_path}: {e}") from e
 
     def _get_categories_to_include(self) -> list[str]:
         """Get list of category codes to include in Excel output.

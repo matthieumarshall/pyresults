@@ -66,7 +66,7 @@ class CsvRaceResultRepository(IRaceResultRepository):
             return race_result
         except Exception as e:
             logger.error(f"Failed to load race result from {file_path}: {e}")
-            raise OSError(f"Failed to load race result from {file_path}: {e}")
+            raise OSError(f"Failed to load race result from {file_path}: {e}") from e
 
     def save_race_result(self, race_result: DomainRaceResult) -> None:
         """Save a race result to CSV file.
@@ -100,7 +100,7 @@ class CsvRaceResultRepository(IRaceResultRepository):
             logger.info(f"Successfully saved {len(race_result.athletes)} athletes to {file_path}")
         except Exception as e:
             logger.error(f"Failed to save race result to {file_path}: {e}")
-            raise OSError(f"Failed to save race result to {file_path}: {e}")
+            raise OSError(f"Failed to save race result to {file_path}: {e}") from e
 
     def exists(self, race_name: str, round_number: str) -> bool:
         """Check if a race result exists.

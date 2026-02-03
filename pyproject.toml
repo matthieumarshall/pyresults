@@ -20,9 +20,7 @@ dev = [
     "pytest-cov>=6.0.0",
     "ruff>=0.9.5",
     "pre-commit>=3.0.0",
-    "mypy>=1.13.0",
-    "pandas-stubs",
-    "types-python-dateutil",
+    "ty>=0.0.14",
 ]
 
 #uv doesn't yet have a support to add dev scripts, so we use hatch for this to run uv run commands
@@ -69,11 +67,5 @@ ignore = []
 quote-style = "double"
 indent-style = "space"
 
-[tool.mypy]
-python_version = "3.10"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = false
-disallow_incomplete_defs = false
-check_untyped_defs = true
-ignore_missing_imports = true
+[tool.ty.analysis]
+allowed-unresolved-imports = []
