@@ -3,12 +3,12 @@ name = "pyresults"
 description = "Running standings calculations"
 dynamic = ["version"]
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.12"
 dependencies = [
     "fpdf==1.7.2",
     "pandas==2.2.3",
     "openpyxl==3.1.2",
-    "numpy==1.26.5",
+    "numpy>=1.26.0,<2.0",
     "python-dateutil==2.8.2"
 ]
 
@@ -16,11 +16,13 @@ dependencies = [
 dev = [
     "hatch>=1.14.0",
     "pyfakefs>=5.7.4",
-    "pyright>=1.1.393",
     "pytest>=8.3.4",
     "pytest-cov>=6.0.0",
     "ruff>=0.9.5",
     "pre-commit>=3.0.0",
+    "mypy>=1.13.0",
+    "pandas-stubs",
+    "types-python-dateutil",
 ]
 
 #uv doesn't yet have a support to add dev scripts, so we use hatch for this to run uv run commands
@@ -44,12 +46,34 @@ path = "pyresults/__about__.py"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.pyright]
-include = ["pyresults"]
-ignore = [".old"]
-pythonVersion = "3.10"
-typeCheckingMode = "standard"
-extraPaths = ["pyresults"]
-
 [tool.coverage.run]
 omit = ["pyresults"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+ignore_missing_imports = true
