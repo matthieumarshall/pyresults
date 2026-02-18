@@ -36,7 +36,9 @@ class InMemoryScoreRepository:
         return category in self.saved_scores
 
 
-def _build_race_result(round_number: str, placements: list[tuple[int, str, str]]) -> DomainRaceResult:
+def _build_race_result(
+    round_number: str, placements: list[tuple[int, str, str]]
+) -> DomainRaceResult:
     result = DomainRaceResult(race_name="U13", round_number=round_number)
 
     for position, name, club in placements:
@@ -60,17 +62,29 @@ def test_individual_score_service_counts_best_rounds() -> None:
 
     race_results = {
         ("U13", "r1"): _build_race_result(
-            "r1", [(1, "Alice Smith", "Club A"), (2, "Bob Jones", "Club B"), (3, "Charlie Roe", "Club C")]
+            "r1",
+            [
+                (1, "Alice Smith", "Club A"),
+                (2, "Bob Jones", "Club B"),
+                (3, "Charlie Roe", "Club C"),
+            ],
         ),
         ("U13", "r2"): _build_race_result(
-            "r2", [(1, "Bob Jones", "Club B"), (2, "Alice Smith", "Club A"), (3, "Charlie Roe", "Club C")]
+            "r2",
+            [
+                (1, "Bob Jones", "Club B"),
+                (2, "Alice Smith", "Club A"),
+                (3, "Charlie Roe", "Club C"),
+            ],
         ),
     }
 
     race_repo = InMemoryRaceResultRepository(race_results)
     score_repo = InMemoryScoreRepository()
 
-    service = IndividualScoreService(config=config, race_result_repo=race_repo, score_repo=score_repo)
+    service = IndividualScoreService(
+        config=config, race_result_repo=race_repo, score_repo=score_repo
+    )
     service.update_scores_for_category("U13B")
 
     saved_scores = score_repo.saved_scores["U13B"]

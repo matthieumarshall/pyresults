@@ -5,7 +5,6 @@ import pandas as pd
 from pyresults.config import build_default_config
 from pyresults.results_processor import ResultsProcessor
 
-
 _SAMPLE_INPUT = """Name,Club,Race No,Pos,Time,Gender,Category
 Alice Smith,Club A,101,1,00:08:00,Male,U13 Boys
 Bob Jones,Club B,102,2,00:08:30,Male,U13 Boys

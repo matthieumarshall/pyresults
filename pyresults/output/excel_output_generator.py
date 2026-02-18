@@ -3,7 +3,6 @@
 import logging
 from pathlib import Path
 
-import pandas as pd
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils.dataframe import dataframe_to_rows

@@ -149,7 +149,11 @@ class ResultsProcessor:
 
                 # Save team results to CSV
                 self._save_team_results(
-                    teams, category_code, race_result.round_number, category.team_size, penalty_score
+                    teams,
+                    category_code,
+                    race_result.round_number,
+                    category.team_size,
+                    penalty_score,
                 )
             except ValueError as e:
                 # Category might not exist or not be a team category
@@ -171,7 +175,9 @@ class ResultsProcessor:
         import pandas as pd
 
         # Create team result data
-        result_data = self.team_scoring_service.create_team_result_data(teams, team_size, penalty_score)
+        result_data = self.team_scoring_service.create_team_result_data(
+            teams, team_size, penalty_score
+        )
 
         if not result_data:
             return

@@ -13,10 +13,10 @@ import pytest
 from pyresults.config import build_default_config
 from pyresults.output.score_data_provider import ScoreDataProvider
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture()
 def tmp_config(tmp_path):
@@ -35,6 +35,7 @@ def _write_csv(path, text):
 # ---------------------------------------------------------------------------
 # Category ordering
 # ---------------------------------------------------------------------------
+
 
 class TestCategoryOrdering:
     """Ensure get_all_category_data returns categories in the correct order."""
@@ -69,7 +70,8 @@ class TestCategoryOrdering:
         provider = ScoreDataProvider(tmp_config)
         codes = [d.category_code for d in provider.get_all_category_data()]
         assert codes == [
-            "U9G", "Team U9G",
+            "U9G",
+            "Team U9G",
             "U13B",
             "SM",
             "Team Men",
@@ -80,6 +82,7 @@ class TestCategoryOrdering:
 # ---------------------------------------------------------------------------
 # DataFrame preparation
 # ---------------------------------------------------------------------------
+
 
 class TestDataFramePreparation:
     """Verify that loaded DataFrames are correctly cleaned for display."""
@@ -144,10 +147,7 @@ class TestDataFramePreparation:
 
     def test_empty_rows_filtered_individual(self, tmp_config):
         scores = tmp_config.data_base_path / "scores"
-        _write_csv(
-            scores / "U13B.csv",
-            "Name,Club,r1,score\nAlice,C,1,1\n,,,"
-        )
+        _write_csv(scores / "U13B.csv", "Name,Club,r1,score\nAlice,C,1,1\n,,,")
 
         provider = ScoreDataProvider(tmp_config)
         data = provider.get_category_data("U13B")
@@ -156,10 +156,7 @@ class TestDataFramePreparation:
 
     def test_empty_rows_filtered_team(self, tmp_config):
         scores = tmp_config.data_base_path / "scores"
-        _write_csv(
-            scores / "teams" / "U13B.csv",
-            "Team,r1,score\nClub A A,6,6\n,,"
-        )
+        _write_csv(scores / "teams" / "U13B.csv", "Team,r1,score\nClub A A,6,6\n,,")
 
         provider = ScoreDataProvider(tmp_config)
         data = provider.get_category_data("Team U13B")
@@ -170,6 +167,7 @@ class TestDataFramePreparation:
 # ---------------------------------------------------------------------------
 # Title resolution
 # ---------------------------------------------------------------------------
+
 
 class TestTitleResolution:
     def test_individual_category_title(self, tmp_config):
@@ -204,6 +202,7 @@ class TestTitleResolution:
 # Score correctness — individual
 # ---------------------------------------------------------------------------
 
+
 class TestIndividualScoreCorrectness:
     """Verify that the provider faithfully reproduces the CSV score values.
 
@@ -231,9 +230,7 @@ class TestIndividualScoreCorrectness:
         scores = tmp_config.data_base_path / "scores"
         _write_csv(
             scores / "U13B.csv",
-            "Name,Club,r1,r2,score\n"
-            "Alice,C,1,,\n"
-            "Bob,C,2,3,2",
+            "Name,Club,r1,r2,score\nAlice,C,1,,\nBob,C,2,3,2",
         )
 
         provider = ScoreDataProvider(tmp_config)
@@ -250,6 +247,7 @@ class TestIndividualScoreCorrectness:
 # Score correctness — teams
 # ---------------------------------------------------------------------------
 
+
 class TestTeamScoreCorrectness:
     """Verify that team scores are faithfully reproduced from CSVs."""
 
@@ -257,9 +255,7 @@ class TestTeamScoreCorrectness:
         scores = tmp_config.data_base_path / "scores"
         _write_csv(
             scores / "teams" / "U13B.csv",
-            "Team,r1,r2,r3,r4,score\n"
-            "Abingdon AC A,16,6,18,19,40\n"
-            "Radley AC A,22,30,29,22,73",
+            "Team,r1,r2,r3,r4,score\nAbingdon AC A,16,6,18,19,40\nRadley AC A,22,30,29,22,73",
         )
 
         provider = ScoreDataProvider(tmp_config)
@@ -273,6 +269,7 @@ class TestTeamScoreCorrectness:
 # ---------------------------------------------------------------------------
 # Output parity — PDF and Excel receive identical data
 # ---------------------------------------------------------------------------
+
 
 class TestOutputParity:
     """Both output generators must receive exactly the same DataFrames."""
@@ -295,9 +292,7 @@ class TestOutputParity:
         scores = tmp_config.data_base_path / "scores"
         _write_csv(
             scores / "U13B.csv",
-            "Name,Club,r1,r2,r3,r4,score\n"
-            "Sam,Radley,1,,1,1,3\n"
-            "Jack,Abingdon,2,1,3,2,5",
+            "Name,Club,r1,r2,r3,r4,score\nSam,Radley,1,,1,1,3\nJack,Abingdon,2,1,3,2,5",
         )
 
         provider_a = ScoreDataProvider(tmp_config)
@@ -313,8 +308,7 @@ class TestOutputParity:
         scores = tmp_config.data_base_path / "scores"
         _write_csv(
             scores / "U13B.csv",
-            "Name,Club,r1,r2,r3,r4,score\n"
-            "Jack,Abingdon,2,1,3,2,5",
+            "Name,Club,r1,r2,r3,r4,score\nJack,Abingdon,2,1,3,2,5",
         )
 
         provider = ScoreDataProvider(tmp_config)

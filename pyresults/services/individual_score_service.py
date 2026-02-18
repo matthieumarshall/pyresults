@@ -111,7 +111,7 @@ class IndividualScoreService:
 
     def update_all_categories(self) -> None:
         """Update scores for all individual categories.
-        
+
         This includes:
         - INDIVIDUAL categories (adult categories like SM, MV40, etc.)
         - TEAM categories (youth categories like U9B, U9G, etc.) which also need individual scoring
@@ -119,15 +119,12 @@ class IndividualScoreService:
         individual_categories = self.config.category_config.get_categories_by_type(
             CategoryType.INDIVIDUAL
         )
-        
+
         # Also include youth team categories which need individual scoring
-        team_categories = self.config.category_config.get_categories_by_type(
-            CategoryType.TEAM
-        )
+        team_categories = self.config.category_config.get_categories_by_type(CategoryType.TEAM)
         # Filter to only include youth categories (exclude adult team categories like "Men", "Women")
         youth_team_categories = [
-            cat for cat in team_categories 
-            if cat.age_group and cat.age_group.startswith("U")
+            cat for cat in team_categories if cat.age_group and cat.age_group.startswith("U")
         ]
 
         for category in individual_categories + youth_team_categories:

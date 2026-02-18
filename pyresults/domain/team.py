@@ -52,19 +52,19 @@ class Team:
             Team score (sum of positions), with penalty for incomplete teams
         """
         min_team_size = math.ceil(team_size / 2)
-        
+
         if len(self.athletes) < min_team_size:
             return 999999  # Team too small to be valid
 
         # Sort by position and take top N (or all if less than team_size)
         scoring_athletes = sorted(self.athletes, key=lambda a: a.position)[:team_size]
         score = sum(athlete.position for athlete in scoring_athletes)
-        
+
         # Add penalty for missing athletes
         missing_count = team_size - len(self.athletes)
         if missing_count > 0:
             score += missing_count * penalty_score
-        
+
         return score
 
     def is_complete(self, team_size: int) -> bool:
@@ -82,6 +82,4 @@ class Team:
         return f"{self.name} {self.category} ({len(self.athletes)} athletes)"
 
     def __repr__(self) -> str:
-        return (
-            f"Team(club='{self.club}', label='{self.label}', category='{self.category}', athletes={len(self.athletes)})"
-        )
+        return f"Team(club='{self.club}', label='{self.label}', category='{self.category}', athletes={len(self.athletes)})"

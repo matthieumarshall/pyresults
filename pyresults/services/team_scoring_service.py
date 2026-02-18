@@ -51,47 +51,75 @@ class TeamScoringService:
             athletes = race_result.athletes
         else:
             athletes = race_result.get_athletes_by_category(category.code)
-        
+
         logger.debug(f"Calculating teams for {category.code}: {len(athletes)} athletes found")
 
         if category.team_size is None:
             raise ValueError(f"Category {category.code} has no team_size defined")
-        
+
         team_size = category.team_size
         min_team_size = (team_size + 1) // 2  # Ceiling division: at least half
-        
+
         # Calculate penalty score (n+1 where n is total athletes in category)
         penalty_score = len(athletes) + 1
-        
+
         # Group athletes by club and sort by position
         from collections import defaultdict
+
         clubs: dict[str, list[Athlete]] = defaultdict(list)
-        
+
         for athlete in athletes:
             clubs[athlete.club].append(athlete)
-        
+
         # Create multiple teams per club
         teams = []
-        
+
         for club, club_athletes in clubs.items():
             # Sort athletes by position
             club_athletes.sort(key=lambda a: a.position)
-            
+
             # Split into multiple teams (A, B, C, etc.)
-            team_labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
-            
+            team_labels = [
+                "A",
+                "B",
+                "C",
+                "D",
+                "E",
+                "F",
+                "G",
+                "H",
+                "I",
+                "J",
+                "K",
+                "L",
+                "M",
+                "N",
+                "O",
+                "P",
+                "Q",
+                "R",
+                "S",
+                "T",
+                "U",
+                "V",
+                "W",
+                "X",
+                "Y",
+                "Z",
+            ]
+
             team_index = 0
             athlete_index = 0
-            
+
             while athlete_index < len(club_athletes):
                 # Create a new team
                 if team_index >= len(team_labels):
                     logger.warning(f"Club {club} has more teams than available labels")
                     break
-                
+
                 label = team_labels[team_index]
                 team = Team(club=club, category=category.code, label=label)
-                
+
                 # Add athletes to this team (up to team_size)
                 for _ in range(team_size):
                     if athlete_index < len(club_athletes):
@@ -99,7 +127,7 @@ class TeamScoringService:
                         athlete_index += 1
                     else:
                         break
-                
+
                 # Only include teams that meet minimum size requirement
                 if len(team.athletes) >= min_team_size:
                     teams.append(team)
@@ -108,15 +136,17 @@ class TeamScoringService:
                         f"Team {team.name} has only {len(team.athletes)} athletes "
                         f"(minimum {min_team_size}), excluding from results"
                     )
-                
+
                 team_index += 1
-        
+
         # Calculate scores and sort
         teams.sort(key=lambda t: t.calculate_score(team_size, penalty_score))
 
         return teams
 
-    def create_team_result_data(self, teams: list[Team], team_size: int, penalty_score: int) -> list[dict]:
+    def create_team_result_data(
+        self, teams: list[Team], team_size: int, penalty_score: int
+    ) -> list[dict]:
         """Create team result data for output.
 
         Args:

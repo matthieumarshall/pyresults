@@ -6,8 +6,7 @@ from unittest.mock import Mock
 import pandas as pd
 
 from pyresults.config import build_default_config
-from pyresults.domain import Athlete, Category, CategoryType, DomainRaceResult, Team
-from pyresults.domain.category import Gender
+from pyresults.domain import Athlete, DomainRaceResult, Team
 from pyresults.services import TeamScoreService, TeamScoringService
 
 
@@ -39,9 +38,20 @@ class TestTeamSizes:
 
     def test_junior_team_size_is_3(self) -> None:
         config = build_default_config()
-        
+
         # Test all junior categories
-        junior_categories = ["U9B", "U9G", "U11B", "U11G", "U13B", "U13G", "U15B", "U15G", "U17M", "U17W"]
+        junior_categories = [
+            "U9B",
+            "U9G",
+            "U11B",
+            "U11G",
+            "U13B",
+            "U13G",
+            "U15B",
+            "U15G",
+            "U17M",
+            "U17W",
+        ]
         for category_code in junior_categories:
             category = config.category_config.get_category(category_code)
             assert category.team_size == 3, f"{category_code} should have team size 3"
@@ -68,7 +78,7 @@ class TestTeamLabels:
     def test_multiple_teams_get_different_labels(self) -> None:
         team_a = Team(club="Oxford AC", category="U13B", label="A")
         team_b = Team(club="Oxford AC", category="U13B", label="B")
-        
+
         assert team_a.label == "A"
         assert team_b.label == "B"
         assert team_a.name == "Oxford AC A"
@@ -85,9 +95,7 @@ class TestMultipleTeamsPerClub:
         category = config.category_config.get_category("U13B")
 
         # Create 6 athletes from same club
-        athletes = [
-            _create_athlete(f"Athlete {i}", "Oxford AC", i, "U13B") for i in range(1, 7)
-        ]
+        athletes = [_create_athlete(f"Athlete {i}", "Oxford AC", i, "U13B") for i in range(1, 7)]
         race_result = _create_race_result("U13", athletes)
 
         teams = service.calculate_teams_for_race(race_result, category)
@@ -111,7 +119,7 @@ class TestMultipleTeamsPerClub:
         for i in range(1, 15):
             cat = "SM" if i <= 7 else "MV40"
             athletes.append(_create_athlete(f"Athlete {i}", "Oxford AC", i, cat))
-        
+
         race_result = _create_race_result("Men", athletes)
 
         teams = service.calculate_teams_for_race(race_result, category)
@@ -142,13 +150,12 @@ class TestMultipleTeamsPerClub:
 
         teams = service.calculate_teams_for_race(race_result, category)
 
-        club_a_teams = sorted([t for t in teams if t.club == "Club A"], 
-                              key=lambda t: t.label)
-        
+        club_a_teams = sorted([t for t in teams if t.club == "Club A"], key=lambda t: t.label)
+
         # Team A should have positions 5, 10, 15
         team_a_positions = sorted([a.position for a in club_a_teams[0].athletes])
         assert team_a_positions == [5, 10, 15]
-        
+
         # Team B should have positions 20, 25, 30
         team_b_positions = sorted([a.position for a in club_a_teams[1].athletes])
         assert team_b_positions == [20, 25, 30]
@@ -206,17 +213,13 @@ class TestMinimumTeamSize:
         category = config.category_config.get_category("Men")
 
         # Club with only 3 athletes - should not create a team
-        athletes = [
-            _create_athlete(f"Athlete {i}", "Club A", i, "SM") for i in range(1, 4)
-        ]
+        athletes = [_create_athlete(f"Athlete {i}", "Club A", i, "SM") for i in range(1, 4)]
         race_result = _create_race_result("Men", athletes)
         teams = service.calculate_teams_for_race(race_result, category)
         assert len([t for t in teams if t.club == "Club A"]) == 0
 
         # Club with 4 athletes - should create a team
-        athletes = [
-            _create_athlete(f"Athlete {i}", "Club B", i, "SM") for i in range(1, 5)
-        ]
+        athletes = [_create_athlete(f"Athlete {i}", "Club B", i, "SM") for i in range(1, 5)]
         race_result = _create_race_result("Men", athletes)
         teams = service.calculate_teams_for_race(race_result, category)
         assert len([t for t in teams if t.club == "Club B"]) == 1
@@ -232,10 +235,7 @@ class TestPenaltyScoring:
         category = config.category_config.get_category("U13B")
 
         # Create race with 20 athletes total
-        athletes = [
-            _create_athlete(f"Athlete {i}", f"Club {i}", i, "U13B") 
-            for i in range(1, 21)
-        ]
+        athletes = [_create_athlete(f"Athlete {i}", f"Club {i}", i, "U13B") for i in range(1, 21)]
         race_result = _create_race_result("U13", athletes)
 
         teams = service.calculate_teams_for_race(race_result, category)
@@ -248,56 +248,56 @@ class TestPenaltyScoring:
     def test_incomplete_junior_team_uses_penalty(self) -> None:
         """Junior team with 2 athletes should add 1 penalty score."""
         team = Team(club="Test Club", category="U13B", label="A")
-        
+
         # Add 2 athletes
         team.add_athlete(_create_athlete("Athlete 1", "Test Club", 5, "U13B"))
         team.add_athlete(_create_athlete("Athlete 2", "Test Club", 10, "U13B"))
 
         # Team size 3, penalty 21 (assuming 20 athletes in category)
         score = team.calculate_score(team_size=3, penalty_score=21)
-        
+
         # Score should be 5 + 10 + 21 = 36
         assert score == 36
 
     def test_incomplete_womens_team_uses_penalty(self) -> None:
         """Women's team with 3 athletes should add 1 penalty score."""
         team = Team(club="Test Club", category="Women", label="A")
-        
+
         # Add 3 athletes
         for i, pos in enumerate([2, 5, 10], 1):
             team.add_athlete(_create_athlete(f"Athlete {i}", "Test Club", pos, "SW", "Female"))
 
         # Team size 4, penalty 51 (assuming 50 athletes in category)
         score = team.calculate_score(team_size=4, penalty_score=51)
-        
+
         # Score should be 2 + 5 + 10 + 51 = 68
         assert score == 68
 
     def test_incomplete_mens_team_uses_multiple_penalties(self) -> None:
         """Men's team with 5 athletes should add 2 penalty scores."""
         team = Team(club="Test Club", category="Men", label="A")
-        
+
         # Add 5 athletes
         for i, pos in enumerate([1, 3, 5, 7, 9], 1):
             team.add_athlete(_create_athlete(f"Athlete {i}", "Test Club", pos, "SM"))
 
         # Team size 7, penalty 101 (assuming 100 athletes in category)
         score = team.calculate_score(team_size=7, penalty_score=101)
-        
+
         # Score should be 1 + 3 + 5 + 7 + 9 + 101 + 101 = 227 (2 penalties for 2 missing)
         assert score == 227
 
     def test_complete_team_has_no_penalty(self) -> None:
         """Complete team with all athletes should have no penalty."""
         team = Team(club="Test Club", category="U13B", label="A")
-        
+
         # Add 3 athletes (full team)
         for i, pos in enumerate([2, 5, 8], 1):
             team.add_athlete(_create_athlete(f"Athlete {i}", "Test Club", pos, "U13B"))
 
         # Team size 3, penalty 21
         score = team.calculate_score(team_size=3, penalty_score=21)
-        
+
         # Score should be 2 + 5 + 8 = 15 (no penalty)
         assert score == 15
 
@@ -308,7 +308,7 @@ class TestTeamScoreCalculation:
     def test_team_score_is_sum_of_positions(self) -> None:
         """Team score should be sum of athlete positions."""
         team = Team(club="Test Club", category="U13B", label="A")
-        
+
         team.add_athlete(_create_athlete("Athlete 1", "Test Club", 3, "U13B"))
         team.add_athlete(_create_athlete("Athlete 2", "Test Club", 7, "U13B"))
         team.add_athlete(_create_athlete("Athlete 3", "Test Club", 12, "U13B"))
@@ -319,7 +319,7 @@ class TestTeamScoreCalculation:
     def test_team_score_uses_best_n_athletes(self) -> None:
         """Team score should use only the best N athletes."""
         team = Team(club="Test Club", category="U13B", label="A")
-        
+
         # Add 5 athletes but only top 3 should count
         team.add_athlete(_create_athlete("Athlete 1", "Test Club", 2, "U13B"))
         team.add_athlete(_create_athlete("Athlete 2", "Test Club", 5, "U13B"))
@@ -333,7 +333,7 @@ class TestTeamScoreCalculation:
     def test_team_too_small_returns_invalid_score(self) -> None:
         """Team below minimum size should return invalid score (999999)."""
         team = Team(club="Test Club", category="U13B", label="A")
-        
+
         # Add only 1 athlete (minimum is 2 for team size 3)
         team.add_athlete(_create_athlete("Athlete 1", "Test Club", 1, "U13B"))
 
@@ -367,7 +367,7 @@ class TestAdultTeamCategories:
         oxford_teams = [t for t in teams if t.club == "Oxford AC"]
         assert len(oxford_teams) == 1
         assert len(oxford_teams[0].athletes) == 7
-        
+
         # Verify all different age categories are included
         categories = {a.category for a in oxford_teams[0].athletes}
         assert "U20M" in categories
@@ -397,7 +397,7 @@ class TestAdultTeamCategories:
         oxford_teams = [t for t in teams if t.club == "Oxford AC"]
         assert len(oxford_teams) == 1
         assert len(oxford_teams[0].athletes) == 4
-        
+
         # Verify all different age categories are included
         categories = {a.category for a in oxford_teams[0].athletes}
         assert "U20W" in categories
