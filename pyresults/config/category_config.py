@@ -100,8 +100,8 @@ def build_default_categories() -> CategoryConfig:
     youth_categories = [
         ("U9B", "Under 9 Boys", Gender.MALE, "U9", 3),
         ("U9G", "Under 9 Girls", Gender.FEMALE, "U9", 3),
-        ("U11B", "Under 11 Boys", Gender.MALE, "U11B", 3),
-        ("U11G", "Under 11 Girls", Gender.FEMALE, "U11G", 3),
+        ("U11B", "Under 11 Boys", Gender.MALE, "U11", 3),
+        ("U11G", "Under 11 Girls", Gender.FEMALE, "U11", 3),
         ("U13B", "Under 13 Boys", Gender.MALE, "U13", 3),
         ("U13G", "Under 13 Girls", Gender.FEMALE, "U13", 3),
         ("U15B", "Under 15 Boys", Gender.MALE, "U15", 3),
@@ -114,7 +114,7 @@ def build_default_categories() -> CategoryConfig:
         categories[code] = Category(
             code=code,
             name=name,
-            category_type=CategoryType.INDIVIDUAL,
+            category_type=CategoryType.TEAM,
             gender=gender,
             race_name=race_name,
             team_size=team_size,
@@ -148,6 +148,25 @@ def build_default_categories() -> CategoryConfig:
             race_name=race_name,
             age_group=age_group,
         )
+
+    # Team categories for adult races (all ages contribute to team scores)
+    categories["Men"] = Category(
+        code="Men",
+        name="Men's Teams",
+        category_type=CategoryType.TEAM,
+        gender=Gender.MALE,
+        race_name="Men",
+        team_size=7,
+    )
+
+    categories["Women"] = Category(
+        code="Women",
+        name="Women's Teams",
+        category_type=CategoryType.TEAM,
+        gender=Gender.FEMALE,
+        race_name="Women",
+        team_size=4,
+    )
 
     # Overall categories (for league standings across all age groups)
     categories["MensOverall"] = Category(

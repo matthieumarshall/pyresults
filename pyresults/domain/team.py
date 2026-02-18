@@ -1,5 +1,6 @@
 """Team domain entity."""
 
+import math
 from dataclasses import dataclass, field
 
 from .athlete import Athlete
@@ -14,6 +15,7 @@ class Team:
 
     club: str
     category: str
+    label: str = "A"  # Team label: A, B, C, etc.
     athletes: list[Athlete] = field(default_factory=list)
 
     def __post_init__(self):
@@ -22,6 +24,13 @@ class Team:
             raise ValueError("Team club cannot be empty")
         if not self.category:
             raise ValueError("Team category cannot be empty")
+        if not self.label:
+            raise ValueError("Team label cannot be empty")
+
+    @property
+    def name(self) -> str:
+        """Get full team name with label (e.g., 'Oxford AC A')."""
+        return f"{self.club} {self.label}"
 
     def add_athlete(self, athlete: Athlete) -> None:
         """Add an athlete to the team."""
@@ -32,25 +41,36 @@ class Team:
             )
         self.athletes.append(athlete)
 
-    def calculate_score(self, team_size: int) -> int:
+    def calculate_score(self, team_size: int, penalty_score: int) -> int:
         """Calculate team score as sum of positions of top N athletes.
 
         Args:
             team_size: Number of athletes that count towards score
+            penalty_score: Penalty score for missing athletes (n+1 where n is total in category)
 
         Returns:
-            Team score (sum of positions), or 999999 if incomplete team
+            Team score (sum of positions), with penalty for incomplete teams
         """
-        if len(self.athletes) < team_size:
-            return 999999  # Incomplete team
+        min_team_size = math.ceil(team_size / 2)
+        
+        if len(self.athletes) < min_team_size:
+            return 999999  # Team too small to be valid
 
-        # Sort by position and take top N
+        # Sort by position and take top N (or all if less than team_size)
         scoring_athletes = sorted(self.athletes, key=lambda a: a.position)[:team_size]
-        return sum(athlete.position for athlete in scoring_athletes)
+        score = sum(athlete.position for athlete in scoring_athletes)
+        
+        # Add penalty for missing athletes
+        missing_count = team_size - len(self.athletes)
+        if missing_count > 0:
+            score += missing_count * penalty_score
+        
+        return score
 
     def is_complete(self, team_size: int) -> bool:
         """Check if team has enough athletes to score."""
-        return len(self.athletes) >= team_size
+        min_team_size = math.ceil(team_size / 2)
+        return len(self.athletes) >= min_team_size
 
     def get_scoring_athletes(self, team_size: int) -> list[Athlete]:
         """Get the athletes that count towards the team score."""
@@ -59,9 +79,9 @@ class Team:
         return sorted(self.athletes, key=lambda a: a.position)[:team_size]
 
     def __str__(self) -> str:
-        return f"{self.club} {self.category} ({len(self.athletes)} athletes)"
+        return f"{self.name} {self.category} ({len(self.athletes)} athletes)"
 
     def __repr__(self) -> str:
         return (
-            f"Team(club='{self.club}', category='{self.category}', athletes={len(self.athletes)})"
+            f"Team(club='{self.club}', label='{self.label}', category='{self.category}', athletes={len(self.athletes)})"
         )

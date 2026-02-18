@@ -77,36 +77,50 @@ class TeamScoreService:
             # Load team results for this round
             try:
                 df = pd.read_csv(team_results_path)
+                # Normalize column names to handle both old (lowercase) and new (capitalized) formats
+                df.columns = df.columns.str.lower()
             except Exception as e:
                 logger.error(f"Failed to read team results from {team_results_path}: {e}")
                 continue
 
-            # Update scores for each club
-            for _, row in df.iterrows():
-                club = row["Club"]
-                position = int(row["Pos"])
+            # Update scores for each team (now includes labels like "Oxford AC A")
+            for idx, row in df.iterrows():
+                # Try 'team' column first (new format with labels), fall back to 'club' (old format)
+                team_name = row.get("team", row.get("club", "Unknown"))
 
-                if club not in score_map:
+                # Team round score should come from the team's calculated score.
+                # Fallback to position only for legacy files that do not include score.
+                round_score: int
+                if "score" in df.columns and pd.notna(row.get("score")):
+                    try:
+                        round_score = int(float(row["score"]))
+                    except (TypeError, ValueError):
+                        logger.debug(
+                            f"Invalid score '{row.get('score')}' for {team_name} in "
+                            f"{round_number}, falling back to position"
+                        )
+                        round_score = int(row["pos"]) if "pos" in df.columns else idx + 1
+                else:
+                    round_score = int(row["pos"]) if "pos" in df.columns else idx + 1
+
+                if team_name not in score_map:
                     # Create new score entry
                     score = Score(
-                        name=club,
+                        name=team_name,
                         club=None,  # For teams, club is the name
                         category=category_code,
                         round_scores={},
                     )
-                    score_map[club] = score
+                    score_map[team_name] = score
 
-                # Add this round's position
-                score_map[club].add_round_score(round_number, position)
+                # Add this round's team score
+                score_map[team_name].add_round_score(round_number, round_score)
 
         # Convert to list and save
         team_scores = list(score_map.values())
 
-        # Calculate rounds to count (all rounds minus 1, minimum 1)
-        rounds_to_count = max(1, rounds_processed - 1) if rounds_processed > 0 else 0
-
-        # Sort by total score
-        team_scores.sort(key=lambda s: s.calculate_total_score(rounds_to_count))
+        # Team scores use all rounds (no dropped round).
+        team_scores.sort(key=lambda s: s.calculate_total_score(rounds_processed))
 
         # Save updated scores
         self._save_team_scores(category_code, team_scores)
@@ -164,11 +178,23 @@ class TeamScoreService:
         output_path = self.config.data_base_path / "scores" / "teams" / f"{category_code}.csv"
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
+        # League rule: total is based on best (n-1) rounds, where n is the
+        # number of rounds that have data for this category.
+        rounds_with_data = {
+            round_num
+            for score in scores
+            for round_num in self.config.round_numbers
+            if round_num in score.round_scores
+        }
+        rounds_available = len(rounds_with_data)
+        # Team scores use all rounds (no dropped round).
+        rounds_to_count = rounds_available
+
         # Convert to DataFrame
         data = []
         for score in scores:
             row = {
-                "Club": score.name,
+                "Team": score.name,  # Now includes label like "Oxford AC A"
             }
 
             # Add round scores
@@ -178,8 +204,7 @@ class TeamScoreService:
                 else:
                     row[round_num] = ""
 
-            # Calculate total
-            rounds_to_count = max(1, len(score.round_scores) - 1) if score.round_scores else 0
+            # Calculate total from all rounds.
             total = score.calculate_total_score(rounds_to_count)
             row["score"] = "" if total > 99999 else str(total)
 
@@ -188,7 +213,7 @@ class TeamScoreService:
         df = pd.DataFrame(data)
 
         # Ensure columns are in correct order
-        columns = ["Club"] + self.config.round_numbers + ["score"]
+        columns = ["Team"] + self.config.round_numbers + ["score"]
         for col in columns:
             if col not in df.columns:
                 df[col] = ""

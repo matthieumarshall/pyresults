@@ -1,4 +1,4 @@
-"""Generates standings for Oxon XC League 2024/25 season.
+"""Generates standings for Oxon XC League a season.
 
 This module serves as the entry point for the application, using the new
 SOLID-based architecture with dependency injection.

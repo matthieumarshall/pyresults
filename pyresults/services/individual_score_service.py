@@ -42,6 +42,10 @@ class IndividualScoreService:
     def update_scores_for_category(self, category_code: str) -> None:
         """Update scores for a specific category across all rounds.
 
+        This method recomputes all scores from scratch using the race results.
+        It does NOT preserve existing scores, as the race results are the
+        source of truth and should be reprocessed each time.
+
         Args:
             category_code: Category code (e.g., "U13B", "MV40")
         """
@@ -51,13 +55,9 @@ class IndividualScoreService:
         category = self.config.category_config.get_category(category_code)
         race_name = category.race_name
 
-        # Load existing scores or create new
-        scores = self._load_or_create_scores(category_code)
-
-        # Build athlete score map
-        score_map: dict[tuple[str, str], Score] = {
-            (score.name, score.club or ""): score for score in scores
-        }
+        # Start with empty score map - we recompute from race results each time
+        # This ensures scores always reflect current race data
+        score_map: dict[tuple[str, str], Score] = {}
 
         # Process each round
         rounds_processed = 0
@@ -73,11 +73,13 @@ class IndividualScoreService:
                 logger.warning(f"Failed to load race result for {race_name} in {round_number}")
                 continue
 
-            # Get athletes in this category
+            # Get athletes in this category, sorted by overall position
+            # to determine category-specific position
             category_athletes = race_result.get_athletes_by_category(category_code)
+            category_athletes.sort(key=lambda a: a.position)
 
-            # Update scores for each athlete
-            for athlete in category_athletes:
+            # Update scores for each athlete using their position within the category
+            for category_position, athlete in enumerate(category_athletes, start=1):
                 key = (athlete.name, athlete.club)
 
                 if key not in score_map:
@@ -90,16 +92,14 @@ class IndividualScoreService:
                     )
                     score_map[key] = score
 
-                # Add this round's position
-                score_map[key].add_round_score(round_number, athlete.position)
+                # Add this round's category-specific position (not overall race position)
+                score_map[key].add_round_score(round_number, category_position)
 
-        # Convert back to list and save
+        # Convert back to list
         updated_scores = list(score_map.values())
 
-        # Calculate rounds to count (all rounds minus 1, minimum 1)
-        rounds_to_count = max(1, rounds_processed - 1) if rounds_processed > 0 else 0
-
-        # Sort by total score
+        # League rule: rank by best (n-1) rounds, where n is rounds processed.
+        rounds_to_count = rounds_processed if rounds_processed <= 1 else rounds_processed - 1
         updated_scores.sort(key=lambda s: s.calculate_total_score(rounds_to_count))
 
         # Save updated scores
@@ -110,12 +110,27 @@ class IndividualScoreService:
         )
 
     def update_all_categories(self) -> None:
-        """Update scores for all individual categories."""
+        """Update scores for all individual categories.
+        
+        This includes:
+        - INDIVIDUAL categories (adult categories like SM, MV40, etc.)
+        - TEAM categories (youth categories like U9B, U9G, etc.) which also need individual scoring
+        """
         individual_categories = self.config.category_config.get_categories_by_type(
             CategoryType.INDIVIDUAL
         )
+        
+        # Also include youth team categories which need individual scoring
+        team_categories = self.config.category_config.get_categories_by_type(
+            CategoryType.TEAM
+        )
+        # Filter to only include youth categories (exclude adult team categories like "Men", "Women")
+        youth_team_categories = [
+            cat for cat in team_categories 
+            if cat.age_group and cat.age_group.startswith("U")
+        ]
 
-        for category in individual_categories:
+        for category in individual_categories + youth_team_categories:
             self.update_scores_for_category(category.code)
 
     def _load_or_create_scores(self, category_code: str) -> list[Score]:

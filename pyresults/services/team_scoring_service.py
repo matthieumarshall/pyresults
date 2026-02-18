@@ -45,35 +45,84 @@ class TeamScoringService:
             raise ValueError(f"Category {category.code} is not a team category")
 
         # Get athletes in this category
-        athletes = race_result.get_athletes_by_category(category.code)
+        # For adult team categories (Men/Women), use all athletes in the race
+        # For junior team categories (U9B, U11G, etc.), filter by category
+        if category.code in ["Men", "Women"]:
+            athletes = race_result.athletes
+        else:
+            athletes = race_result.get_athletes_by_category(category.code)
+        
         logger.debug(f"Calculating teams for {category.code}: {len(athletes)} athletes found")
 
-        # Group athletes by club
-        teams_dict: dict[str, Team] = {}
-
-        for athlete in athletes:
-            if athlete.club not in teams_dict:
-                teams_dict[athlete.club] = Team(club=athlete.club, category=category.code)
-
-            teams_dict[athlete.club].add_athlete(athlete)
-
-        # Convert to list
-        teams = list(teams_dict.values())
-
-        # Calculate scores and sort
         if category.team_size is None:
             raise ValueError(f"Category {category.code} has no team_size defined")
+        
         team_size = category.team_size
-        teams.sort(key=lambda t: t.calculate_score(team_size))
+        min_team_size = (team_size + 1) // 2  # Ceiling division: at least half
+        
+        # Calculate penalty score (n+1 where n is total athletes in category)
+        penalty_score = len(athletes) + 1
+        
+        # Group athletes by club and sort by position
+        from collections import defaultdict
+        clubs: dict[str, list[Athlete]] = defaultdict(list)
+        
+        for athlete in athletes:
+            clubs[athlete.club].append(athlete)
+        
+        # Create multiple teams per club
+        teams = []
+        
+        for club, club_athletes in clubs.items():
+            # Sort athletes by position
+            club_athletes.sort(key=lambda a: a.position)
+            
+            # Split into multiple teams (A, B, C, etc.)
+            team_labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+            
+            team_index = 0
+            athlete_index = 0
+            
+            while athlete_index < len(club_athletes):
+                # Create a new team
+                if team_index >= len(team_labels):
+                    logger.warning(f"Club {club} has more teams than available labels")
+                    break
+                
+                label = team_labels[team_index]
+                team = Team(club=club, category=category.code, label=label)
+                
+                # Add athletes to this team (up to team_size)
+                for _ in range(team_size):
+                    if athlete_index < len(club_athletes):
+                        team.add_athlete(club_athletes[athlete_index])
+                        athlete_index += 1
+                    else:
+                        break
+                
+                # Only include teams that meet minimum size requirement
+                if len(team.athletes) >= min_team_size:
+                    teams.append(team)
+                else:
+                    logger.debug(
+                        f"Team {team.name} has only {len(team.athletes)} athletes "
+                        f"(minimum {min_team_size}), excluding from results"
+                    )
+                
+                team_index += 1
+        
+        # Calculate scores and sort
+        teams.sort(key=lambda t: t.calculate_score(team_size, penalty_score))
 
         return teams
 
-    def create_team_result_data(self, teams: list[Team], team_size: int) -> list[dict]:
+    def create_team_result_data(self, teams: list[Team], team_size: int, penalty_score: int) -> list[dict]:
         """Create team result data for output.
 
         Args:
             teams: List of Team objects
             team_size: Number of athletes that count towards score
+            penalty_score: Penalty score for missing athletes
 
         Returns:
             List of dictionaries containing team result data
@@ -82,7 +131,7 @@ class TeamScoringService:
 
         position = 1
         for team in teams:
-            score = team.calculate_score(team_size)
+            score = team.calculate_score(team_size, penalty_score)
 
             # Only include teams with valid scores
             if score >= 999999:
@@ -91,8 +140,8 @@ class TeamScoringService:
             # Get scoring athletes
             scoring_athletes = team.get_scoring_athletes(team_size)
 
-            # Create row data
-            row = {"Pos": position, "Club": team.club, "Score": score}
+            # Create row data with team name (includes label)
+            row = {"Pos": position, "Team": team.name, "Score": score}
 
             # Add individual athlete positions
             for i, athlete in enumerate(scoring_athletes, 1):

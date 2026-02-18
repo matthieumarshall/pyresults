@@ -143,9 +143,13 @@ class ResultsProcessor:
                     logger.warning(f"Category {category_code} has no team_size defined")
                     continue
 
+                # Calculate penalty score (n+1 where n is total athletes in this category)
+                athletes = race_result.get_athletes_by_category(category_code)
+                penalty_score = len(athletes) + 1
+
                 # Save team results to CSV
                 self._save_team_results(
-                    teams, category_code, race_result.round_number, category.team_size
+                    teams, category_code, race_result.round_number, category.team_size, penalty_score
                 )
             except ValueError as e:
                 # Category might not exist or not be a team category
@@ -153,7 +157,7 @@ class ResultsProcessor:
                 continue
 
     def _save_team_results(
-        self, teams, category_code: str, round_number: str, team_size: int
+        self, teams, category_code: str, round_number: str, team_size: int, penalty_score: int
     ) -> None:
         """Save team results to CSV file.
 
@@ -162,11 +166,12 @@ class ResultsProcessor:
             category_code: Category code
             round_number: Round identifier
             team_size: Number of athletes per team
+            penalty_score: Penalty score for missing athletes
         """
         import pandas as pd
 
         # Create team result data
-        result_data = self.team_scoring_service.create_team_result_data(teams, team_size)
+        result_data = self.team_scoring_service.create_team_result_data(teams, team_size, penalty_score)
 
         if not result_data:
             return

@@ -86,7 +86,8 @@ class CompetitionConfig:
         Raises:
             ValueError: If mapping not found
         """
-        key = (gender, race_category)
+        # Strip whitespace from inputs to handle inconsistent data
+        key = (gender.strip(), race_category.strip())
         if key not in self.category_mappings:
             raise ValueError(f"No category mapping for {key}")
         return self.category_mappings[key]

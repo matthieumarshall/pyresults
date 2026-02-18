@@ -81,6 +81,17 @@ class CsvScoreRepository(IScoreRepository):
 
         logger.debug(f"Saving {len(scores)} scores for {category} to {file_path}")
 
+        # League rule: total is based on best (n-1) rounds, where n is the
+        # number of rounds that have data for this category.
+        rounds_with_data = {
+            round_num
+            for score in scores
+            for round_num in self.round_numbers
+            if round_num in score.round_scores
+        }
+        rounds_available = len(rounds_with_data)
+        rounds_to_count = rounds_available if rounds_available <= 1 else rounds_available - 1
+
         # Convert domain objects to DataFrame
         data = []
         for score in scores:
@@ -96,9 +107,7 @@ class CsvScoreRepository(IScoreRepository):
                 else:
                     row[round_num] = ""
 
-            # Calculate total score
-            # For saving, we use all available rounds
-            rounds_to_count = max(1, len(score.round_scores) - 1) if score.round_scores else 0
+            # Calculate total score from best (n-1) rounds.
             total = score.calculate_total_score(rounds_to_count)
             row["score"] = "" if total > 99999 else str(total)
 

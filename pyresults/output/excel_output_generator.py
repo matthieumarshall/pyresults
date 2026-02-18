@@ -11,21 +11,17 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 from pyresults.config import CompetitionConfig
 
 from .interfaces import IOutputGenerator
+from .score_data_provider import CategoryDisplayData, ScoreDataProvider
 
 logger = logging.getLogger(__name__)
 
 
 class ExcelOutputGenerator(IOutputGenerator):
-    """Generates Excel output from score data.
+    """Generates Excel output from pre-computed score data.
 
-    This class handles:
-    - Loading score data from CSV files
-    - Formatting data for Excel
-    - Creating styled Excel workbooks
-    - Saving Excel files
-
-    This replaces the create_excel function, following the
-    Single Responsibility Principle and Interface Segregation Principle.
+    This class is a pure rendering layer.  All score computation and data
+    preparation is handled by ``ScoreDataProvider``; this generator only
+    converts the resulting DataFrames into styled Excel worksheets.
     """
 
     def __init__(self, config: CompetitionConfig, output_path: Path):
@@ -37,6 +33,7 @@ class ExcelOutputGenerator(IOutputGenerator):
         """
         self.config = config
         self.output_path = output_path
+        self.data_provider = ScoreDataProvider(config)
 
     def generate(self) -> None:
         """Generate Excel file with all score sheets."""
@@ -46,13 +43,13 @@ class ExcelOutputGenerator(IOutputGenerator):
         if wb.active:
             wb.remove(wb.active)  # Remove default sheet
 
-        # Get all categories to include
-        categories = self._get_categories_to_include()
-        logger.debug(f"Found {len(categories)} categories to include in Excel")
+        # Get display-ready data for every category
+        all_data = self.data_provider.get_all_category_data()
+        logger.debug(f"Found {len(all_data)} categories to include in Excel")
 
         # Create a sheet for each category
-        for category_code in categories:
-            self._add_category_sheet(wb, category_code)
+        for category_data in all_data:
+            self._add_category_sheet(wb, category_data)
 
         # Save workbook
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -63,54 +60,17 @@ class ExcelOutputGenerator(IOutputGenerator):
             logger.error(f"Failed to save Excel file to {self.output_path}: {e}")
             raise OSError(f"Failed to save Excel file to {self.output_path}: {e}") from e
 
-    def _get_categories_to_include(self) -> list[str]:
-        """Get list of category codes to include in Excel output.
-
-        Returns:
-            List of category codes
-        """
-        # Include all categories that have score files
-        categories = []
-        scores_dir = self.config.data_base_path / "scores"
-
-        if not scores_dir.exists():
-            return []
-
-        for csv_file in scores_dir.glob("*.csv"):
-            categories.append(csv_file.stem)
-
-        # Also include team scores
-        teams_dir = scores_dir / "teams"
-        if teams_dir.exists():
-            for csv_file in teams_dir.glob("*.csv"):
-                categories.append(f"Team {csv_file.stem}")
-
-        return categories
-
-    def _add_category_sheet(self, wb: Workbook, category_code: str) -> None:
+    def _add_category_sheet(self, wb: Workbook, data: CategoryDisplayData) -> None:
         """Add a sheet for a specific category.
 
         Args:
             wb: Workbook to add sheet to
-            category_code: Category code
+            data: Pre-computed display data for a single category
         """
-        # Determine if this is a team category
-        is_team = category_code.startswith("Team ")
-
-        if is_team:
-            actual_category = category_code.replace("Team ", "")
-            csv_path = self.config.data_base_path / "scores" / "teams" / f"{actual_category}.csv"
-        else:
-            csv_path = self.config.data_base_path / "scores" / f"{category_code}.csv"
-
-        if not csv_path.exists():
-            return
-
-        # Load data
-        df = pd.read_csv(csv_path)
+        df = data.dataframe
 
         # Create sheet with truncated name (Excel has 31 char limit)
-        sheet_name = category_code[:31]
+        sheet_name = data.category_code[:31]
         ws = wb.create_sheet(title=sheet_name)
 
         # Write data to sheet
@@ -135,7 +95,6 @@ class ExcelOutputGenerator(IOutputGenerator):
                     if len(str(cell.value)) > max_length:
                         max_length = len(str(cell.value))
                 except (TypeError, AttributeError) as e:
-                    # Skip cells with problematic values
                     logger.debug(f"Skipping cell value in column {column_letter}: {e}")
                     pass
             adjusted_width = min(max_length + 2, 50)
