@@ -213,3 +213,115 @@ def test_overall_scores_included_in_update_all_categories() -> None:
     by_name = {s.name: s for s in overall}
     assert by_name["Runner A"].round_scores == {"r1": 1}
     assert by_name["Runner B"].round_scores == {"r1": 2}
+
+
+class TestIncompleteRoundsSorting:
+    """Athletes who haven't competed in enough rounds should be sorted by
+    number of rounds competed (descending) then by aggregate score (ascending)."""
+
+    def test_individual_scores_sorted_by_rounds_competed(self) -> None:
+        """Athletes with fewer rounds than needed for a valid total should
+        appear after complete athletes, ordered by rounds competed then score."""
+        config = build_default_config()
+        config.round_numbers = ["r1", "r2", "r3"]
+
+        # With 3 rounds the best-2-of-3 rule applies, so athletes need ≥2
+        # rounds for a valid total.  Athletes with only 1 round get 999999.
+        race_results = {
+            ("U13", "r1"): _build_race_result(
+                "r1",
+                [
+                    (1, "Full A", "Club A"),  # runs all 3
+                    (2, "Full B", "Club B"),  # runs all 3
+                    (3, "TwoRound Low", "Club C"),  # runs 2 rounds
+                    (4, "TwoRound High", "Club D"),  # runs 2 rounds
+                    (5, "OneRound", "Club E"),  # runs 1 round only
+                ],
+            ),
+            ("U13", "r2"): _build_race_result(
+                "r2",
+                [
+                    (1, "Full A", "Club A"),
+                    (2, "Full B", "Club B"),
+                    (3, "TwoRound Low", "Club C"),  # aggregate = 3+3 = 6
+                    (4, "TwoRound High", "Club D"),  # aggregate = 4+4 = 8
+                ],
+            ),
+            ("U13", "r3"): _build_race_result(
+                "r3",
+                [
+                    (1, "Full A", "Club A"),
+                    (2, "Full B", "Club B"),
+                ],
+            ),
+        }
+
+        race_repo = InMemoryRaceResultRepository(race_results)
+        score_repo = InMemoryScoreRepository()
+
+        service = IndividualScoreService(
+            config=config, race_result_repo=race_repo, score_repo=score_repo
+        )
+        service.update_scores_for_category("U13B")
+
+        saved = score_repo.saved_scores["U13B"]
+        names = [s.name for s in saved]
+
+        # Full-round athletes first (sorted by best-2-of-3 total)
+        assert names[0] == "Full A"
+        assert names[1] == "Full B"
+
+        # Then 2-round athletes (valid total, lower aggregate first)
+        assert names[2] == "TwoRound Low"
+        assert names[3] == "TwoRound High"
+
+        # Then 1-round athlete last
+        assert names[4] == "OneRound"
+
+    def test_overall_scores_sorted_by_rounds_competed(self) -> None:
+        """Overall scoring should also sub-sort incomplete athletes properly."""
+        config = build_default_config()
+        config.round_numbers = ["r1", "r2", "r3"]
+
+        race_results = {
+            ("Men", "r1"): _build_mens_race_result(
+                "r1",
+                [
+                    (1, "Complete Runner", "Club A", "SM"),
+                    (2, "Two Round Low", "Club B", "SM"),
+                    (3, "Two Round High", "Club C", "SM"),
+                    (4, "One Round", "Club D", "SM"),
+                ],
+            ),
+            ("Men", "r2"): _build_mens_race_result(
+                "r2",
+                [
+                    (1, "Complete Runner", "Club A", "SM"),
+                    (2, "Two Round Low", "Club B", "SM"),
+                    (3, "Two Round High", "Club C", "SM"),
+                ],
+            ),
+            ("Men", "r3"): _build_mens_race_result(
+                "r3",
+                [
+                    (1, "Complete Runner", "Club A", "SM"),
+                ],
+            ),
+        }
+
+        race_repo = InMemoryRaceResultRepository(race_results)
+        score_repo = InMemoryScoreRepository()
+
+        service = IndividualScoreService(
+            config=config, race_result_repo=race_repo, score_repo=score_repo
+        )
+        service.update_scores_for_overall_category("MensOverall")
+
+        saved = score_repo.saved_scores["MensOverall"]
+        names = [s.name for s in saved]
+
+        assert names[0] == "Complete Runner"
+        # 2-round athletes before 1-round
+        assert names[1] == "Two Round Low"
+        assert names[2] == "Two Round High"
+        assert names[3] == "One Round"

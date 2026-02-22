@@ -33,6 +33,12 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    # Support both comma-separated (--rounds r1,r2,r3) and space-separated (--rounds r1 r2 r3)
+    rounds = []
+    for item in args.rounds:
+        rounds.extend(item.split(","))
+    args.rounds = [r.strip() for r in rounds if r.strip()]
+
     # Initialize logging
     setup_logging(level=args.log_level)
 

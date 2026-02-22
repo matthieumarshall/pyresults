@@ -1,6 +1,7 @@
 """Team scoring service for calculating team results."""
 
 import logging
+from dataclasses import replace
 
 from pyresults.config import CompetitionConfig
 from pyresults.domain import Category, DomainRaceResult, Team
@@ -54,11 +55,20 @@ class TeamScoringService:
 
         logger.debug(f"Calculating teams for {category.code}: {len(athletes)} athletes found")
 
+        # For junior team categories, use category-specific positions (rank within
+        # the gender/age-group) instead of the overall race position.  Junior races
+        # are mixed boys/girls so the overall position does not reflect the
+        # athlete's standing within their category.
+        if category.code not in ["Men", "Women"]:
+            athletes_sorted = sorted(athletes, key=lambda a: a.position)
+            athletes = [
+                replace(a, position=rank) for rank, a in enumerate(athletes_sorted, start=1)
+            ]
+
         if category.team_size is None:
             raise ValueError(f"Category {category.code} has no team_size defined")
 
         team_size = category.team_size
-        min_team_size = (team_size + 1) // 2  # Ceiling division: at least half
 
         # Calculate penalty score (n+1 where n is total athletes in category)
         penalty_score = len(athletes) + 1
@@ -128,13 +138,15 @@ class TeamScoringService:
                     else:
                         break
 
-                # Only include teams that meet minimum size requirement
-                if len(team.athletes) >= min_team_size:
+                # A teams always qualify (with penalty scores for missing athletes).
+                # B/C/etc. teams need a minimum number of athletes.
+                min_size = team._minimum_team_size(team_size)
+                if len(team.athletes) >= min_size:
                     teams.append(team)
                 else:
                     logger.debug(
                         f"Team {team.name} has only {len(team.athletes)} athletes "
-                        f"(minimum {min_team_size}), excluding from results"
+                        f"(minimum {min_size}), excluding from results"
                     )
 
                 team_index += 1

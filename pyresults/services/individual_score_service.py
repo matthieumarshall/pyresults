@@ -100,7 +100,15 @@ class IndividualScoreService:
 
         # League rule: rank by best (n-1) rounds, where n is rounds processed.
         rounds_to_count = rounds_processed if rounds_processed <= 1 else rounds_processed - 1
-        updated_scores.sort(key=lambda s: s.calculate_total_score(rounds_to_count))
+        # Primary: total score (999999 for incomplete), secondary: more rounds
+        # first, tertiary: lower aggregate score first.
+        updated_scores.sort(
+            key=lambda s: (
+                s.calculate_total_score(rounds_to_count),
+                -s.get_rounds_competed(),
+                sum(sorted(s.round_scores.values())),
+            )
+        )
 
         # Save updated scores
         self.score_repo.save_scores(category_code, updated_scores)
@@ -159,7 +167,15 @@ class IndividualScoreService:
 
         # League rule: rank by best (n-1) rounds, where n is rounds processed.
         rounds_to_count = rounds_processed if rounds_processed <= 1 else rounds_processed - 1
-        updated_scores.sort(key=lambda s: s.calculate_total_score(rounds_to_count))
+        # Primary: total score (999999 for incomplete), secondary: more rounds
+        # first, tertiary: lower aggregate score first.
+        updated_scores.sort(
+            key=lambda s: (
+                s.calculate_total_score(rounds_to_count),
+                -s.get_rounds_competed(),
+                sum(sorted(s.round_scores.values())),
+            )
+        )
 
         self.score_repo.save_scores(category_code, updated_scores)
         logger.info(

@@ -152,77 +152,126 @@ class TestMultipleTeamsPerClub:
 
         club_a_teams = sorted([t for t in teams if t.club == "Club A"], key=lambda t: t.label)
 
-        # Team A should have positions 5, 10, 15
+        # Team A should have category positions 1, 2, 3 (ranked within category)
         team_a_positions = sorted([a.position for a in club_a_teams[0].athletes])
-        assert team_a_positions == [5, 10, 15]
+        assert team_a_positions == [1, 2, 3]
 
-        # Team B should have positions 20, 25, 30
+        # Team B should have category positions 4, 5, 6
         team_b_positions = sorted([a.position for a in club_a_teams[1].athletes])
-        assert team_b_positions == [20, 25, 30]
+        assert team_b_positions == [4, 5, 6]
 
 
 class TestMinimumTeamSize:
-    """Test that teams need at least half the team size to be valid."""
+    """Test minimum team size rules.
 
-    def test_junior_team_needs_at_least_2_athletes(self) -> None:
-        """Junior teams (size 3) need at least 2 athletes."""
+    A teams always qualify (with penalty scores for missing athletes).
+    B/C/etc. teams need at least ceil(team_size / 2) athletes.
+    """
+
+    def test_junior_a_team_qualifies_with_1_athlete(self) -> None:
+        """Junior A team (size 3) qualifies with just 1 athlete plus penalties."""
         config = build_default_config()
         service = TeamScoringService(config)
         category = config.category_config.get_category("U13B")
 
-        # Club with only 1 athlete - should not create a team
         athletes = [_create_athlete("Athlete 1", "Club A", 1, "U13B")]
         race_result = _create_race_result("U13", athletes)
         teams = service.calculate_teams_for_race(race_result, category)
-        assert len([t for t in teams if t.club == "Club A"]) == 0
+        a_teams = [t for t in teams if t.club == "Club A" and t.label == "A"]
+        assert len(a_teams) == 1
+        # Score = 1 + 2 penalties of (1+1)=2 each = 1 + 2 + 2 = 5
+        assert a_teams[0].calculate_score(3, len(athletes) + 1) == 5
 
-        # Club with 2 athletes - should create a team
+    def test_junior_b_team_needs_at_least_2_athletes(self) -> None:
+        """Junior B team (size 3) needs at least 2 athletes to qualify."""
+        config = build_default_config()
+        service = TeamScoringService(config)
+        category = config.category_config.get_category("U13B")
+
+        # 4 athletes from same club: A team gets 3, B team gets 1 → B excluded
         athletes = [
-            _create_athlete("Athlete 1", "Club B", 1, "U13B"),
-            _create_athlete("Athlete 2", "Club B", 2, "U13B"),
+            _create_athlete("Athlete 1", "Club A", 1, "U13B"),
+            _create_athlete("Athlete 2", "Club A", 2, "U13B"),
+            _create_athlete("Athlete 3", "Club A", 3, "U13B"),
+            _create_athlete("Athlete 4", "Club A", 4, "U13B"),
         ]
         race_result = _create_race_result("U13", athletes)
         teams = service.calculate_teams_for_race(race_result, category)
-        assert len([t for t in teams if t.club == "Club B"]) == 1
+        b_teams = [t for t in teams if t.club == "Club A" and t.label == "B"]
+        assert len(b_teams) == 0
 
-    def test_womens_team_needs_at_least_2_athletes(self) -> None:
-        """Women's teams (size 4) need at least 2 athletes."""
+        # 5 athletes from same club: A team gets 3, B team gets 2 → B qualifies
+        athletes.append(_create_athlete("Athlete 5", "Club A", 5, "U13B"))
+        race_result = _create_race_result("U13", athletes)
+        teams = service.calculate_teams_for_race(race_result, category)
+        b_teams = [t for t in teams if t.club == "Club A" and t.label == "B"]
+        assert len(b_teams) == 1
+
+    def test_womens_a_team_qualifies_with_1_athlete(self) -> None:
+        """Women's A team (size 4) qualifies with just 1 athlete plus penalties."""
         config = build_default_config()
         service = TeamScoringService(config)
         category = config.category_config.get_category("Women")
 
-        # Club with only 1 athlete - should not create a team
         athletes = [_create_athlete("Athlete 1", "Club A", 1, "SW", "Female")]
         race_result = _create_race_result("Women", athletes)
         teams = service.calculate_teams_for_race(race_result, category)
-        assert len([t for t in teams if t.club == "Club A"]) == 0
+        a_teams = [t for t in teams if t.club == "Club A" and t.label == "A"]
+        assert len(a_teams) == 1
 
-        # Club with 2 athletes - should create a team
+    def test_womens_b_team_needs_at_least_2_athletes(self) -> None:
+        """Women's B team (size 4) needs at least 2 athletes."""
+        config = build_default_config()
+        service = TeamScoringService(config)
+        category = config.category_config.get_category("Women")
+
+        # 5 athletes: A team (4), B team (1) → B excluded
         athletes = [
-            _create_athlete("Athlete 1", "Club B", 1, "SW", "Female"),
-            _create_athlete("Athlete 2", "Club B", 2, "SW", "Female"),
+            _create_athlete(f"Athlete {i}", "Club A", i, "SW", "Female") for i in range(1, 6)
         ]
         race_result = _create_race_result("Women", athletes)
         teams = service.calculate_teams_for_race(race_result, category)
-        assert len([t for t in teams if t.club == "Club B"]) == 1
+        b_teams = [t for t in teams if t.club == "Club A" and t.label == "B"]
+        assert len(b_teams) == 0
 
-    def test_mens_team_needs_at_least_4_athletes(self) -> None:
-        """Men's teams (size 7) need at least 4 athletes."""
+        # 6 athletes: A team (4), B team (2) → B qualifies
+        athletes.append(_create_athlete("Athlete 6", "Club A", 6, "SW", "Female"))
+        race_result = _create_race_result("Women", athletes)
+        teams = service.calculate_teams_for_race(race_result, category)
+        b_teams = [t for t in teams if t.club == "Club A" and t.label == "B"]
+        assert len(b_teams) == 1
+
+    def test_mens_a_team_qualifies_with_1_athlete(self) -> None:
+        """Men's A team (size 7) qualifies with just 1 athlete plus penalties."""
         config = build_default_config()
         service = TeamScoringService(config)
         category = config.category_config.get_category("Men")
 
-        # Club with only 3 athletes - should not create a team
-        athletes = [_create_athlete(f"Athlete {i}", "Club A", i, "SM") for i in range(1, 4)]
+        athletes = [_create_athlete("Athlete 1", "Club A", 1, "SM")]
         race_result = _create_race_result("Men", athletes)
         teams = service.calculate_teams_for_race(race_result, category)
-        assert len([t for t in teams if t.club == "Club A"]) == 0
+        a_teams = [t for t in teams if t.club == "Club A" and t.label == "A"]
+        assert len(a_teams) == 1
 
-        # Club with 4 athletes - should create a team
-        athletes = [_create_athlete(f"Athlete {i}", "Club B", i, "SM") for i in range(1, 5)]
+    def test_mens_b_team_needs_at_least_4_athletes(self) -> None:
+        """Men's B team (size 7) needs at least 4 athletes."""
+        config = build_default_config()
+        service = TeamScoringService(config)
+        category = config.category_config.get_category("Men")
+
+        # 10 athletes: A team (7), B team (3) → B excluded
+        athletes = [_create_athlete(f"Athlete {i}", "Club A", i, "SM") for i in range(1, 11)]
         race_result = _create_race_result("Men", athletes)
         teams = service.calculate_teams_for_race(race_result, category)
-        assert len([t for t in teams if t.club == "Club B"]) == 1
+        b_teams = [t for t in teams if t.club == "Club A" and t.label == "B"]
+        assert len(b_teams) == 0
+
+        # 11 athletes: A team (7), B team (4) → B qualifies
+        athletes.append(_create_athlete("Athlete 11", "Club A", 11, "SM"))
+        race_result = _create_race_result("Men", athletes)
+        teams = service.calculate_teams_for_race(race_result, category)
+        b_teams = [t for t in teams if t.club == "Club A" and t.label == "B"]
+        assert len(b_teams) == 1
 
 
 class TestPenaltyScoring:
@@ -330,11 +379,22 @@ class TestTeamScoreCalculation:
         score = team.calculate_score(team_size=3, penalty_score=50)
         assert score == 15  # 2 + 5 + 8 (best 3, not 15 and 20)
 
-    def test_team_too_small_returns_invalid_score(self) -> None:
-        """Team below minimum size should return invalid score (999999)."""
+    def test_a_team_too_small_returns_penalty_score(self) -> None:
+        """A team with 1 athlete should return score with penalties, not 999999."""
         team = Team(club="Test Club", category="U13B", label="A")
 
-        # Add only 1 athlete (minimum is 2 for team size 3)
+        # Add only 1 athlete — A team still qualifies
+        team.add_athlete(_create_athlete("Athlete 1", "Test Club", 1, "U13B"))
+
+        score = team.calculate_score(team_size=3, penalty_score=50)
+        # Score = 1 + 50 + 50 = 101 (2 missing athletes × penalty 50)
+        assert score == 101
+
+    def test_b_team_too_small_returns_invalid_score(self) -> None:
+        """B team below minimum size should return invalid score (999999)."""
+        team = Team(club="Test Club", category="U13B", label="B")
+
+        # Add only 1 athlete (minimum is 2 for B team, team size 3)
         team.add_athlete(_create_athlete("Athlete 1", "Test Club", 1, "U13B"))
 
         score = team.calculate_score(team_size=3, penalty_score=50)
@@ -444,26 +504,32 @@ class TestTeamResultData:
         teams = service.calculate_teams_for_race(race_result, category)
         result_data = service.create_team_result_data(teams, team_size=3, penalty_score=50)
 
-        assert result_data[0]["Runner1"] == "Alice Smith (5)"
-        assert result_data[0]["Runner2"] == "Bob Jones (10)"
-        assert result_data[0]["Runner3"] == "Charlie Roe (15)"
+        # Junior categories use category positions (rank within category)
+        assert result_data[0]["Runner1"] == "Alice Smith (1)"
+        assert result_data[0]["Runner2"] == "Bob Jones (2)"
+        assert result_data[0]["Runner3"] == "Charlie Roe (3)"
 
-    def test_team_result_excludes_invalid_teams(self) -> None:
-        """Team result data should not include teams with invalid scores."""
+    def test_a_team_result_included_with_penalties(self) -> None:
+        """A team with 1 athlete should appear in results with penalty scores."""
         config = build_default_config()
         service = TeamScoringService(config)
         category = config.category_config.get_category("U13B")
 
-        # Create a club with only 1 athlete (below minimum of 2)
+        # Create a club with only 1 athlete — A team should still appear
         athletes = [_create_athlete("Athlete 1", "Small Club", 1, "U13B")]
         race_result = _create_race_result("U13", athletes)
 
         teams = service.calculate_teams_for_race(race_result, category)
-        result_data = service.create_team_result_data(teams, team_size=3, penalty_score=50)
+        penalty_score = len(athletes) + 1  # 2
+        result_data = service.create_team_result_data(
+            teams, team_size=3, penalty_score=penalty_score
+        )
 
-        # Should not include the team with invalid score
         team_names = [row["Team"] for row in result_data]
-        assert "Small Club A" not in team_names
+        assert "Small Club A" in team_names
+        # Score = 1 + 2 + 2 = 5
+        small_club_row = [row for row in result_data if row["Team"] == "Small Club A"][0]
+        assert small_club_row["Score"] == 5
 
 
 class TestOverallTeamAggregation:
@@ -535,3 +601,69 @@ class TestOverallTeamAggregation:
         # Total should be sum of ALL rounds, not best 2-of-3
         assert int(club_a["score"]) == 10 + 15 + 12  # 37
         assert int(club_b["score"]) == 20 + 25 + 18  # 63
+
+    def test_incomplete_teams_sorted_by_rounds_competed(self, tmp_path) -> None:
+        """Teams without enough rounds should be ordered by rounds competed (desc),
+        then by aggregate score (asc) among those with the same number of rounds."""
+        config = build_default_config()
+        config.data_base_path = tmp_path / "data"
+
+        # 4 rounds of data.  Teams with all 4 rounds get a valid total;
+        # teams missing rounds get 999999 and must be sub-sorted.
+        round_data = {
+            "r1": [
+                ("Complete A", 10),
+                ("Complete B", 20),
+                ("TwoRounds_High A", 50),
+                ("TwoRounds_Low A", 40),
+                ("OneRound A", 60),
+            ],
+            "r2": [
+                ("Complete A", 12),
+                ("Complete B", 22),
+                ("ThreeRounds A", 30),
+                ("TwoRounds_High A", 55),
+                ("TwoRounds_Low A", 45),
+            ],
+            "r3": [
+                ("Complete A", 11),
+                ("Complete B", 21),
+                ("ThreeRounds A", 25),
+            ],
+            "r4": [
+                ("Complete A", 13),
+                ("Complete B", 23),
+                ("ThreeRounds A", 28),
+            ],
+        }
+
+        for rnd, teams in round_data.items():
+            rnd_dir = config.data_base_path / rnd / "teams"
+            rnd_dir.mkdir(parents=True)
+            rows = [{"Pos": i + 1, "Team": t, "Score": s} for i, (t, s) in enumerate(teams)]
+            pd.DataFrame(rows).to_csv(rnd_dir / "U13B.csv", index=False)
+
+        service = TeamScoreService(
+            config=config,
+            race_result_repo=Mock(),
+            team_scoring_service=TeamScoringService(config),
+        )
+        service.update_team_scores_for_category("U13B")
+
+        output_file = config.data_base_path / "scores" / "teams" / "U13B.csv"
+        df = pd.read_csv(output_file)
+        team_order = df["Team"].tolist()
+
+        # Complete teams first (sorted by total score)
+        assert team_order[0] == "Complete A"  # 10+12+11+13 = 46
+        assert team_order[1] == "Complete B"  # 20+22+21+23 = 86
+
+        # Then 3-round team
+        assert team_order[2] == "ThreeRounds A"  # 3 rounds
+
+        # Then 2-round teams sorted by aggregate score
+        assert team_order[3] == "TwoRounds_Low A"  # 40+45 = 85
+        assert team_order[4] == "TwoRounds_High A"  # 50+55 = 105
+
+        # Then 1-round team
+        assert team_order[5] == "OneRound A"  # 1 round

@@ -120,7 +120,15 @@ class TeamScoreService:
         team_scores = list(score_map.values())
 
         # Team scores use all rounds (no dropped round).
-        team_scores.sort(key=lambda s: s.calculate_total_score(rounds_processed))
+        # Primary: total score (999999 for incomplete), secondary: more rounds
+        # first, tertiary: lower aggregate score first.
+        team_scores.sort(
+            key=lambda s: (
+                s.calculate_total_score(rounds_processed),
+                -s.get_rounds_competed(),
+                sum(sorted(s.round_scores.values())),
+            )
+        )
 
         # Save updated scores
         self._save_team_scores(category_code, team_scores)

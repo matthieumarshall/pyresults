@@ -119,7 +119,7 @@ def build_default_config() -> CompetitionConfig:
         CompetitionConfig with default settings
     """
     # Guest numbers
-    guests = {"1611"} | {str(x) for x in range(1615, 1671)} | {str(x) for x in range(1718, 1764)}
+    guests = {"1611"} | {str(x) for x in range(1615, 1658)}
 
     # Round numbers
     round_numbers = ["r1", "r2", "r3", "r4", "r5"]

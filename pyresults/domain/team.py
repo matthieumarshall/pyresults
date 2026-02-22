@@ -44,6 +44,10 @@ class Team:
     def calculate_score(self, team_size: int, penalty_score: int) -> int:
         """Calculate team score as sum of positions of top N athletes.
 
+        A teams always qualify (minimum 1 athlete) and receive penalty scores
+        for missing athletes.  B/C/etc. teams require at least half the team
+        size (rounded up) to qualify.
+
         Args:
             team_size: Number of athletes that count towards score
             penalty_score: Penalty score for missing athletes (n+1 where n is total in category)
@@ -51,7 +55,7 @@ class Team:
         Returns:
             Team score (sum of positions), with penalty for incomplete teams
         """
-        min_team_size = math.ceil(team_size / 2)
+        min_team_size = self._minimum_team_size(team_size)
 
         if len(self.athletes) < min_team_size:
             return 999999  # Team too small to be valid
@@ -69,7 +73,7 @@ class Team:
 
     def is_complete(self, team_size: int) -> bool:
         """Check if team has enough athletes to score."""
-        min_team_size = math.ceil(team_size / 2)
+        min_team_size = self._minimum_team_size(team_size)
         return len(self.athletes) >= min_team_size
 
     def get_scoring_athletes(self, team_size: int) -> list[Athlete]:
@@ -77,6 +81,16 @@ class Team:
         if not self.is_complete(team_size):
             return []
         return sorted(self.athletes, key=lambda a: a.position)[:team_size]
+
+    def _minimum_team_size(self, team_size: int) -> int:
+        """Return the minimum number of athletes needed for this team to qualify.
+
+        A teams always qualify with at least 1 athlete (penalties fill the rest).
+        B/C/etc. teams need at least ceil(team_size / 2) athletes.
+        """
+        if self.label == "A":
+            return 1
+        return math.ceil(team_size / 2)
 
     def __str__(self) -> str:
         return f"{self.name} {self.category} ({len(self.athletes)} athletes)"

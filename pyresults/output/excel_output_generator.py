@@ -69,7 +69,10 @@ class ExcelOutputGenerator(IOutputGenerator):
         df = data.dataframe
 
         # Create sheet with truncated name (Excel has 31 char limit)
-        sheet_name = data.category_code[:31]
+        if data.division is not None:
+            sheet_name = data.title[:31]
+        else:
+            sheet_name = data.category_code[:31]
         ws = wb.create_sheet(title=sheet_name)
 
         # Write data to sheet
