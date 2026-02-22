@@ -119,7 +119,7 @@ def build_default_config() -> CompetitionConfig:
         CompetitionConfig with default settings
     """
     # Guest numbers
-    guests = {"1635", "1636", "956", "1652"} | {str(x) for x in range(1718, 1764)}
+    guests = {"1611"} | {str(x) for x in range(1615, 1671)} | {str(x) for x in range(1718, 1764)}
 
     # Round numbers
     round_numbers = ["r1", "r2", "r3", "r4", "r5"]
@@ -130,49 +130,59 @@ def build_default_config() -> CompetitionConfig:
     # Men's divisions
     mens_divisions = {
         "Abingdon AC A": "1",
-        "Swindon Harriers A": "1",
-        "Oxford City AC A": "1",
-        "Headington RR A": "1",
-        "Witney Road Runners A": "1",
-        "Newbury AC A": "1",
-        "White Horse Harriers A": "1",
-        "Alchester Running Club A": "1",
         "Didcot Runners A": "1",
+        "Headington RR A": "1",
+        "Newbury AC A": "1",
+        "Oxford City AC A": "1",
+        "Swindon Harriers A": "1",
+        "White Horse Harriers A": "1",
+        "Witney Road Runners A": "1",
+        "Abingdon AC B": "1",
+        "Headington RR B": "1",
+        "Headington RR C": "1",
+        "Newbury AC B": "1",
+        "Oxford City AC B": "1",
         "Swindon Harriers B": "1",
-        "Abingdon AC B": "2",
-        "Witney Road Runners B": "2",
-        "Newbury AC B": "2",
-        "Headington RR B": "2",
-        "Woodstock Harriers AC A": "2",
+        "White Horse Harriers B": "1",
+        "Witney Road Runners B": "1",
+        "Witney Road Runners C": "1",
+        "Alchester Running Club A": "2",
+        "Banbury harriers AC A": "2",
+        "Bicester AC A": "2",
         "Eynsham Road Runners A": "2",
         "Harwell Harriers A": "2",
-        "White Horse Harriers B": "2",
-        "Oxford Tri A": "2",
-        "Radley Athletic Club A": "2",
+        "Highworth RC A": "2",
+        "Thame Runners A": "2",
+        "Woodstock Harriers AC A": "2",
     }
 
     # Women's divisions
     womens_divisions = {
+        "Abingdon AC A": "1",
+        "Banbury harriers AC A": "1",
         "Headington RR A": "1",
+        "Highworth RC A": "1",
+        "Newbury AC A": "1",
         "Oxford City AC A": "1",
         "Swindon Harriers A": "1",
-        "Abingdon AC A": "1",
-        "Newbury AC A": "1",
-        "Headington RR B": "1",
-        "White Horse Harriers A": "1",
         "Witney Road Runners A": "1",
-        "Headington RR C": "1",
-        "Didcot Runners A": "1",
-        "Banbury harriers AC A": "2",
-        "Highworth RC A": "2",
-        "Radley Athletic Club A": "2",
+        "Abingdon AC B": "1",
+        "Headington RR B": "1",
+        "Newbury AC B": "1",
+        "Oxford City AC B": "1",
+        "Oxford City AC C": "1",
+        "Swindon Harriers B": "1",
+        "Witney Road Runners B": "1",
+        "Witney Road Runners C": "1",
+        "Witney Road Runners D": "1",
+        "Didcot Runners A": "2",
         "Eynsham Road Runners A": "2",
-        "Woodstock Harriers AC A": "2",
         "Hook Norton Harriers A": "2",
         "Oxford Tri A": "2",
-        "Bicester AC A": "2",
-        "Newbury AC B": "2",
-        "Alchester Running Club A": "2",
+        "Radley AC A": "2",
+        "Thame Runners A": "2",
+        "White Horse Harriers A": "2",
+        "Woodstock Harriers AC A": "2",
     }
 
     # Gender mappings
