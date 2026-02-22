@@ -109,12 +109,71 @@ class IndividualScoreService:
             f"({rounds_processed} rounds processed)"
         )
 
+    def update_scores_for_overall_category(self, category_code: str) -> None:
+        """Update overall scores for a race across all age groups.
+
+        Unlike category-specific scoring, overall scoring uses each athlete's
+        finishing position in the full race (not a position within their age
+        category).  Every non-guest athlete in the race is included.
+
+        Args:
+            category_code: Overall category code (e.g., "MensOverall")
+        """
+        logger.info(f"Updating overall scores for category: {category_code}")
+
+        category = self.config.category_config.get_category(category_code)
+        race_name = category.race_name
+
+        score_map: dict[tuple[str, str], Score] = {}
+
+        rounds_processed = 0
+        for round_number in self.config.round_numbers:
+            if not self.race_result_repo.exists(race_name, round_number):
+                logger.debug(f"No race result for {race_name} in {round_number}")
+                continue
+
+            rounds_processed += 1
+            race_result = self.race_result_repo.load_race_result(race_name, round_number)
+
+            if race_result is None:
+                logger.warning(f"Failed to load race result for {race_name} in {round_number}")
+                continue
+
+            # Use ALL athletes in the race, scored by their overall
+            # finishing position (athlete.position) – not a category
+            # sub-position.
+            for athlete in race_result.athletes:
+                key = (athlete.name, athlete.club)
+
+                if key not in score_map:
+                    score_map[key] = Score(
+                        name=athlete.name,
+                        club=athlete.club,
+                        category=category_code,
+                        round_scores={},
+                    )
+
+                score_map[key].add_round_score(round_number, athlete.position)
+
+        updated_scores = list(score_map.values())
+
+        # League rule: rank by best (n-1) rounds, where n is rounds processed.
+        rounds_to_count = rounds_processed if rounds_processed <= 1 else rounds_processed - 1
+        updated_scores.sort(key=lambda s: s.calculate_total_score(rounds_to_count))
+
+        self.score_repo.save_scores(category_code, updated_scores)
+        logger.info(
+            f"Saved {len(updated_scores)} overall scores for {category_code} "
+            f"({rounds_processed} rounds processed)"
+        )
+
     def update_all_categories(self) -> None:
         """Update scores for all individual categories.
 
         This includes:
         - INDIVIDUAL categories (adult categories like SM, MV40, etc.)
         - TEAM categories (youth categories like U9B, U9G, etc.) which also need individual scoring
+        - OVERALL categories (e.g., MensOverall, WomensOverall)
         """
         individual_categories = self.config.category_config.get_categories_by_type(
             CategoryType.INDIVIDUAL
@@ -129,6 +188,13 @@ class IndividualScoreService:
 
         for category in individual_categories + youth_team_categories:
             self.update_scores_for_category(category.code)
+
+        # Overall categories use the athlete's race-wide finishing position
+        overall_categories = self.config.category_config.get_categories_by_type(
+            CategoryType.OVERALL
+        )
+        for category in overall_categories:
+            self.update_scores_for_overall_category(category.code)
 
     def _load_or_create_scores(self, category_code: str) -> list[Score]:
         """Load existing scores or return empty list.
