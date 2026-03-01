@@ -40,6 +40,24 @@ jobs:
       - name: Install dependencies
         run: uv sync --group dev
 
+      - name: Debug - Python and venv info
+        run: |
+          echo "=== uv python info ==="
+          uv run python --version
+          uv run python -c "import sys; print('sys.prefix:', sys.prefix)"
+          uv run python -c "import sys; print('sys.path:', sys.path)"
+          echo "=== .venv structure ==="
+          ls -la .venv/
+          ls -la .venv/lib/
+          ls -la .venv/lib/python3.11/site-packages/ | grep -i pyresults || echo "pyresults NOT found in site-packages"
+          echo "=== editable install pth files ==="
+          find .venv -name "*.pth" | xargs cat 2>/dev/null || echo "no .pth files"
+          find .venv -name "*.dist-info" -name "*pyresults*" -o -name "direct_url.json" 2>/dev/null | head -20
+          find .venv -path "*pyresults*dist-info*" 2>/dev/null | head -20
+          echo "=== try importing pyresults ==="
+          uv run python -c "import pyresults; print('pyresults imported OK from:', pyresults.__file__)"
+          uv run python -c "from pyresults.output.score_data_provider import ScoreDataProvider; print('ScoreDataProvider imported OK')"
+
       - name: ty check
         run: uv run ty check --python .venv
 
