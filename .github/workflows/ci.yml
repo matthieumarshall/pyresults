@@ -55,24 +55,25 @@ jobs:
         with:
           python-version: "3.11"
 
-      # Export all dependencies (including dev) to a requirements file so
-      # pip-audit can scan them without needing to install them into its own env.
-      - name: Export dependencies
-        run: uv export --no-hashes --all-groups --format requirements-txt -o requirements-audit.txt
-
-      # pip-audit (https://github.com/pypa/pip-audit) is a free, open-source
-      # tool from PyPA that checks for known CVEs via the OSV / PyPI advisory DBs.
+      # osv-scanner (https://github.com/google/osv-scanner) is a free, open-source
+      # tool from Google that checks for known CVEs via the OSV advisory DB.
+      # It scans uv.lock directly and outputs SARIF natively.
       # --continue-on-error so the SARIF upload step always runs even when
-      # vulnerabilities are found (pip-audit exits non-zero in that case).
-      - name: Scan for vulnerabilities with pip-audit
-        run: uvx pip-audit -r requirements-audit.txt --format sarif -o pip-audit.sarif
+      # vulnerabilities are found (osv-scanner exits non-zero in that case).
+      - name: Install osv-scanner
+        run: |
+          curl -sSfL https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 -o osv-scanner
+          chmod +x osv-scanner
+
+      - name: Scan for vulnerabilities with osv-scanner
+        run: ./osv-scanner --lockfile uv.lock --format sarif --output osv-scanner.sarif
         continue-on-error: true
 
       - name: Upload SARIF to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: pip-audit.sarif
-          category: pip-audit
+          sarif_file: osv-scanner.sarif
+          category: osv-scanner
 
   test:
     name: Test & coverage
