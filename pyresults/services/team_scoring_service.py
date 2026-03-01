@@ -4,7 +4,7 @@ import logging
 from dataclasses import replace
 
 from pyresults.config import CompetitionConfig
-from pyresults.domain import Category, DomainRaceResult, Team
+from pyresults.domain import Athlete, Category, DomainRaceResult, Team
 
 logger = logging.getLogger(__name__)
 

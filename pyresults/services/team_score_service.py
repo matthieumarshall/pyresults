@@ -77,14 +77,16 @@ class TeamScoreService:
             # Load team results for this round
             try:
                 df = pd.read_csv(team_results_path)
-                # Normalize column names to handle both old (lowercase) and new (capitalized) formats
+                # Normalize column names to handle both old (lowercase)
+                # and new (capitalized) formats
                 df.columns = df.columns.str.lower()
             except Exception as e:
                 logger.error(f"Failed to read team results from {team_results_path}: {e}")
                 continue
 
             # Update scores for each team (now includes labels like "Oxford AC A")
-            for idx, row in df.iterrows():
+            for idx_, row in df.iterrows():
+                idx = int(idx_)  # type: ignore[arg-type]
                 # Try 'team' column first (new format with labels), fall back to 'club' (old format)
                 team_name = row.get("team", row.get("club", "Unknown"))
 

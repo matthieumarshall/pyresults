@@ -149,7 +149,7 @@ class RaceProcessorService:
 
         return df
 
-    def _clean_name(self, name: str) -> str:
+    def _clean_name(self, name: str | float) -> str:
         """Clean and normalize athlete name.
 
         Args:

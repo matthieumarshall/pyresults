@@ -16,7 +16,7 @@ def test_results_processor_reads_input_data(tmp_path, monkeypatch) -> None:
     config.data_base_path = tmp_path / "data"
 
     processor = ResultsProcessor(config=config)
-    processor._process_team_scores_for_race = types.MethodType(
+    processor._process_team_scores_for_race = types.MethodType(  # type: ignore[assignment]
         lambda self, race_result: None, processor
     )
 

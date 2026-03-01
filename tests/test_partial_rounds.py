@@ -8,20 +8,19 @@ import types
 from datetime import timedelta
 
 import pandas as pd
-import pytest
 
 from pyresults.config import build_default_config
-from pyresults.domain import Athlete, DomainRaceResult, Score
+from pyresults.domain import Athlete, DomainRaceResult
+from pyresults.repositories import IRaceResultRepository, IScoreRepository
 from pyresults.results_processor import ResultsProcessor
 from pyresults.services import IndividualScoreService
-
 
 # ---------------------------------------------------------------------------
 # In-memory test doubles (shared with other test modules)
 # ---------------------------------------------------------------------------
 
 
-class InMemoryRaceResultRepository:
+class InMemoryRaceResultRepository(IRaceResultRepository):
     def __init__(self, results: dict[tuple[str, str], DomainRaceResult]) -> None:
         self._results = results
 
@@ -38,7 +37,7 @@ class InMemoryRaceResultRepository:
         return [race for race, rnd in self._results.keys() if rnd == round_number]
 
 
-class InMemoryScoreRepository:
+class InMemoryScoreRepository(IScoreRepository):
     def __init__(self) -> None:
         self.saved_scores: dict[str, list] = {}
 
@@ -107,7 +106,7 @@ class TestPartialRoundProcessing:
 
         processor = ResultsProcessor(config=config)
         # Stub out team scoring to isolate race processing
-        processor._process_team_scores_for_race = types.MethodType(
+        processor._process_team_scores_for_race = types.MethodType(  # type: ignore[assignment]
             lambda self, race_result: None, processor
         )
 
@@ -136,7 +135,7 @@ class TestPartialRoundProcessing:
         config.data_base_path = tmp_path / "data"
 
         processor = ResultsProcessor(config=config)
-        processor._process_team_scores_for_race = types.MethodType(
+        processor._process_team_scores_for_race = types.MethodType(  # type: ignore[assignment]
             lambda self, race_result: None, processor
         )
 
@@ -338,7 +337,7 @@ class TestFullPipelinePartialRound:
 
         processor = ResultsProcessor(config=config)
         # Stub out team scoring and output generation
-        processor._process_team_scores_for_race = types.MethodType(
+        processor._process_team_scores_for_race = types.MethodType(  # type: ignore[assignment]
             lambda self, race_result: None, processor
         )
 
@@ -374,7 +373,7 @@ class TestFullPipelinePartialRound:
         config.round_numbers = ["r1", "r2"]
 
         processor = ResultsProcessor(config=config)
-        processor._process_team_scores_for_race = types.MethodType(
+        processor._process_team_scores_for_race = types.MethodType(  # type: ignore[assignment]
             lambda self, race_result: None, processor
         )
 

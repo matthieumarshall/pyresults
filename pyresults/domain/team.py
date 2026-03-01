@@ -96,4 +96,7 @@ class Team:
         return f"{self.name} {self.category} ({len(self.athletes)} athletes)"
 
     def __repr__(self) -> str:
-        return f"Team(club='{self.club}', label='{self.label}', category='{self.category}', athletes={len(self.athletes)})"
+        return (
+            f"Team(club='{self.club}', label='{self.label}',"
+            f" category='{self.category}', athletes={len(self.athletes)})"
+        )

@@ -86,8 +86,26 @@ class PdfOutputGenerator(IOutputGenerator):
     # Ordering helpers
     # ------------------------------------------------------------------
 
-    _ADULT_WOMEN_CODES = {"U20W", "SW", "WV40", "WV50", "WV60", "WV70", "Team Women", "WomensOverall"}
-    _ADULT_MEN_CODES = {"U20M", "SM", "MV40", "MV50", "MV60", "MV70", "Team Men", "MensOverall"}
+    _ADULT_WOMEN_CODES = {
+        "U20W",
+        "SW",
+        "WV40",
+        "WV50",
+        "WV60",
+        "WV70",
+        "Team Women",
+        "WomensOverall",
+    }
+    _ADULT_MEN_CODES = {
+        "U20M",
+        "SM",
+        "MV40",
+        "MV50",
+        "MV60",
+        "MV70",
+        "Team Men",
+        "MensOverall",
+    }
 
     def _reorder_for_pdf(self, data: list[CategoryDisplayData]) -> list[CategoryDisplayData]:
         """Reorder categories so adult women tables precede adult men tables.

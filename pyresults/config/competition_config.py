@@ -144,7 +144,7 @@ def build_default_config() -> CompetitionConfig:
         CompetitionConfig with default settings
     """
     # Guest numbers
-    guests = {"1611"} | {str(x) for x in range(1615, 1658)}
+    guests = {"1611", "1612"} | {str(x) for x in range(1615, 1658)}
 
     # Round numbers
     round_numbers = ["r1", "r2", "r3", "r4", "r5"]
@@ -159,7 +159,7 @@ def build_default_config() -> CompetitionConfig:
         "Abingdon AC": "1",
         "Didcot Runners": "1",
         "Headington RR": "1",
-        "Newbury AC": "1",        
+        "Newbury AC": "1",
         "Oxford City AC": "1",
         "Swindon Harriers": "1",
         "White Horse Harriers": "1",

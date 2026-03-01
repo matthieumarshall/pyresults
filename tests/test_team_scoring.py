@@ -287,7 +287,7 @@ class TestPenaltyScoring:
         athletes = [_create_athlete(f"Athlete {i}", f"Club {i}", i, "U13B") for i in range(1, 21)]
         race_result = _create_race_result("U13", athletes)
 
-        teams = service.calculate_teams_for_race(race_result, category)
+        service.calculate_teams_for_race(race_result, category)
 
         # Penalty should be 21 (20 athletes + 1)
         # We can verify this indirectly by checking team scores

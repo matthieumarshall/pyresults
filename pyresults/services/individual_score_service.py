@@ -204,7 +204,8 @@ class IndividualScoreService:
 
         # Also include youth team categories which need individual scoring
         team_categories = self.config.category_config.get_categories_by_type(CategoryType.TEAM)
-        # Filter to only include youth categories (exclude adult team categories like "Men", "Women")
+        # Filter to only include youth categories
+        # (exclude adult team categories like "Men", "Women")
         youth_team_categories = [
             cat for cat in team_categories if cat.age_group and cat.age_group.startswith("U")
         ]

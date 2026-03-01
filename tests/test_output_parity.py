@@ -107,6 +107,7 @@ class TestDataFramePreparation:
         provider = ScoreDataProvider(tmp_config)
         data = provider.get_category_data("U13B")
 
+        assert data is not None
         assert "R 1" in data.dataframe.columns
         assert "R 2" not in data.dataframe.columns
 
@@ -117,6 +118,7 @@ class TestDataFramePreparation:
         provider = ScoreDataProvider(tmp_config)
         data = provider.get_category_data("U13B")
 
+        assert data is not None
         assert "Score" in data.dataframe.columns
         assert "score" not in data.dataframe.columns
 
@@ -130,6 +132,7 @@ class TestDataFramePreparation:
         provider = ScoreDataProvider(tmp_config)
         data = provider.get_category_data("U13B")
 
+        assert data is not None
         assert data.dataframe.columns[0] == "Pos"
         assert list(data.dataframe["Pos"]) == [1, 2]
 
@@ -141,6 +144,7 @@ class TestDataFramePreparation:
         provider = ScoreDataProvider(tmp_config)
         data = provider.get_category_data("U13B")
 
+        assert data is not None
         # Values should be int (or empty string for missing)
         assert data.dataframe["R 1"].iloc[0] == 3
         assert data.dataframe["Score"].iloc[0] == 3
@@ -152,6 +156,7 @@ class TestDataFramePreparation:
         provider = ScoreDataProvider(tmp_config)
         data = provider.get_category_data("U13B")
 
+        assert data is not None
         assert len(data.dataframe) == 1
 
     def test_empty_rows_filtered_team(self, tmp_config):
@@ -161,6 +166,7 @@ class TestDataFramePreparation:
         provider = ScoreDataProvider(tmp_config)
         data = provider.get_category_data("Team U13B")
 
+        assert data is not None
         assert len(data.dataframe) == 1
 
 
@@ -177,6 +183,7 @@ class TestTitleResolution:
         provider = ScoreDataProvider(tmp_config)
         data = provider.get_category_data("U13B")
 
+        assert data is not None
         assert data.title == "Under 13 Boys"
 
     def test_team_category_title(self, tmp_config):
@@ -186,6 +193,7 @@ class TestTitleResolution:
         provider = ScoreDataProvider(tmp_config)
         data = provider.get_category_data("Team Men")
 
+        assert data is not None
         assert data.title == "Men's Teams"
 
     def test_unknown_category_uses_code(self, tmp_config):
@@ -195,6 +203,7 @@ class TestTitleResolution:
         provider = ScoreDataProvider(tmp_config)
         data = provider.get_category_data("Unknown")
 
+        assert data is not None
         assert data.title == "Unknown"
 
 
@@ -222,6 +231,7 @@ class TestIndividualScoreCorrectness:
 
         provider = ScoreDataProvider(tmp_config)
         data = provider.get_category_data("U13B")
+        assert data is not None
         df = data.dataframe
 
         assert list(df["Score"]) == [3, 5, 12]
@@ -235,6 +245,7 @@ class TestIndividualScoreCorrectness:
 
         provider = ScoreDataProvider(tmp_config)
         data = provider.get_category_data("U13B")
+        assert data is not None
         df = data.dataframe
 
         # Alice has no score (insufficient rounds)
@@ -260,6 +271,7 @@ class TestTeamScoreCorrectness:
 
         provider = ScoreDataProvider(tmp_config)
         data = provider.get_category_data("Team U13B")
+        assert data is not None
         df = data.dataframe
 
         assert list(df["Score"]) == [40, 73]
@@ -301,6 +313,8 @@ class TestOutputParity:
         data_a = provider_a.get_category_data("U13B")
         data_b = provider_b.get_category_data("U13B")
 
+        assert data_a is not None
+        assert data_b is not None
         pd.testing.assert_frame_equal(data_a.dataframe, data_b.dataframe)
 
     def test_no_cumulative_in_round_columns(self, tmp_config):
@@ -313,6 +327,7 @@ class TestOutputParity:
 
         provider = ScoreDataProvider(tmp_config)
         data = provider.get_category_data("U13B")
+        assert data is not None
         df = data.dataframe
 
         # These should be the raw per-round values, NOT cumulative

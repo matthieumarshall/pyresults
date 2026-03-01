@@ -15,8 +15,7 @@ import pandas as pd
 import pytest
 
 from pyresults.config import build_default_config
-from pyresults.config.competition_config import CompetitionConfig
-from pyresults.config.category_config import CategoryConfig, build_default_categories
+from pyresults.config.category_config import build_default_categories
 from pyresults.domain import (
     Athlete,
     Category,
@@ -29,8 +28,8 @@ from pyresults.domain import (
 from pyresults.domain.category import Gender
 from pyresults.repositories.csv_race_result_repository import CsvRaceResultRepository
 from pyresults.repositories.csv_score_repository import CsvScoreRepository
+from pyresults.repositories.interfaces import IRaceResultRepository, IScoreRepository
 from pyresults.services.race_processor_service import RaceProcessorService
-
 
 # ===================================================================
 # Domain: Athlete
@@ -451,8 +450,6 @@ class TestRaceProcessorNameCleaning:
         assert s._clean_name("John    Smith") == "John Smith"
 
     def test_handles_nan(self) -> None:
-        import math
-
         s = self._make_service()
         assert s._clean_name(float("nan")) == ""
 
@@ -596,13 +593,9 @@ class TestCsvRaceResultRepository:
 
         # Create some race files
         rr1 = DomainRaceResult(race_name="Men", round_number="r1")
-        rr1.add_athlete(
-            Athlete("A", "C", "1", 1, timedelta(minutes=30), "Male", "SM")
-        )
+        rr1.add_athlete(Athlete("A", "C", "1", 1, timedelta(minutes=30), "Male", "SM"))
         rr2 = DomainRaceResult(race_name="U13", round_number="r1")
-        rr2.add_athlete(
-            Athlete("B", "C", "2", 1, timedelta(minutes=8), "Male", "U13B")
-        )
+        rr2.add_athlete(Athlete("B", "C", "2", 1, timedelta(minutes=8), "Male", "U13B"))
         repo.save_race_result(rr1)
         repo.save_race_result(rr2)
 
@@ -743,7 +736,7 @@ class TestSingleRoundScoring:
 
 
 # Minimal in-memory stubs for single-round test
-class _InMemoryRaceRepo:
+class _InMemoryRaceRepo(IRaceResultRepository):
     def __init__(self, results):
         self._results = results
 
@@ -760,7 +753,7 @@ class _InMemoryRaceRepo:
         return [r for r, rn in self._results if rn == round_number]
 
 
-class _InMemoryScoreRepo:
+class _InMemoryScoreRepo(IScoreRepository):
     def __init__(self):
         self.saved_scores = {}
 
@@ -778,6 +771,14 @@ def _build_race_result(placements):
     result = DomainRaceResult(race_name="U13", round_number="r1")
     for position, name, club, category in placements:
         result.add_athlete(
-            Athlete(name, club, str(100 + position), position, timedelta(minutes=8, seconds=position), "Male", category)
+            Athlete(
+                name,
+                club,
+                str(100 + position),
+                position,
+                timedelta(minutes=8, seconds=position),
+                "Male",
+                category,
+            )
         )
     return result

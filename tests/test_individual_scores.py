@@ -2,10 +2,11 @@ from datetime import timedelta
 
 from pyresults.config import build_default_config
 from pyresults.domain import Athlete, DomainRaceResult
+from pyresults.repositories import IRaceResultRepository, IScoreRepository
 from pyresults.services import IndividualScoreService
 
 
-class InMemoryRaceResultRepository:
+class InMemoryRaceResultRepository(IRaceResultRepository):
     def __init__(self, results: dict[tuple[str, str], DomainRaceResult]) -> None:
         self._results = results
 
@@ -22,7 +23,7 @@ class InMemoryRaceResultRepository:
         return [race for race, rnd in self._results.keys() if rnd == round_number]
 
 
-class InMemoryScoreRepository:
+class InMemoryScoreRepository(IScoreRepository):
     def __init__(self) -> None:
         self.saved_scores: dict[str, list] = {}
 
