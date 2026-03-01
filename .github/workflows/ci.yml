@@ -45,6 +45,8 @@ jobs:
   security:
     name: Security scan
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write  # required to upload SARIF to the Security tab
     steps:
       - uses: actions/checkout@v4
 
@@ -59,8 +61,17 @@ jobs:
 
       # pip-audit (https://github.com/pypa/pip-audit) is a free, open-source
       # tool from PyPA that checks for known CVEs via the OSV / PyPI advisory DBs.
+      # --continue-on-error so the SARIF upload step always runs even when
+      # vulnerabilities are found (pip-audit exits non-zero in that case).
       - name: Scan for vulnerabilities with pip-audit
-        run: uvx pip-audit -r requirements-audit.txt
+        run: uvx pip-audit -r requirements-audit.txt --format sarif -o pip-audit.sarif
+        continue-on-error: true
+
+      - name: Upload SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: pip-audit.sarif
+          category: pip-audit
 
   test:
     name: Test & coverage
