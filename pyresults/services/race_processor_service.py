@@ -122,6 +122,10 @@ class RaceProcessorService:
         # Normalize names
         df["Name"] = df["Name"].apply(self._clean_name)
 
+        # Normalize club names (merge aliases like "Radley AC" -> "Radley Athletic Club")
+        if "Club" in df.columns:
+            df["Club"] = df["Club"].apply(self.config.normalize_club_name)
+
         # Convert data types
         df["Race No"] = df["Race No"].astype(str)
         df["Pos"] = pd.to_numeric(df["Pos"], errors="coerce")

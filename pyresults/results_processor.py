@@ -144,8 +144,13 @@ class ResultsProcessor:
                     continue
 
                 # Calculate penalty score (n+1 where n is total athletes in this category)
-                athletes = race_result.get_athletes_by_category(category_code)
-                penalty_score = len(athletes) + 1
+                # For Men/Women team categories, use all athletes in the race
+                # (matching the logic in calculate_teams_for_race)
+                if category_code in ["Men", "Women"]:
+                    penalty_score = len(race_result.athletes) + 1
+                else:
+                    athletes = race_result.get_athletes_by_category(category_code)
+                    penalty_score = len(athletes) + 1
 
                 # Save team results to CSV
                 self._save_team_results(

@@ -27,6 +27,7 @@ class CompetitionConfig:
         womens_divisions: dict[str, str],
         gender_mappings: dict[str, str],
         category_mappings: dict[tuple[str, str], str],
+        club_aliases: dict[str, str] | None = None,
     ):
         """Initialize competition configuration.
 
@@ -35,10 +36,17 @@ class CompetitionConfig:
             guest_numbers: Set of race numbers for guest athletes
             round_numbers: List of round identifiers (e.g., ["r1", "r2", ...])
             data_base_path: Base path for data files
-            mens_divisions: Mapping of club names to division numbers for men
-            womens_divisions: Mapping of club names to division numbers for women
+                mens_divisions: Mapping of base club names to division numbers for men
+                (e.g. {"Abingdon AC": "1", "Alchester Running Club": "2"}).
+                All teams from a club (A, B, C …) inherit the club's division.
+                Clubs absent from the mapping default to division "3".
+            womens_divisions: Same structure as mens_divisions but for women
             gender_mappings: Mapping of race names to genders
             category_mappings: Mapping of (gender, race_category) to category codes
+            club_aliases: Mapping of alternate club names to their canonical name
+                (e.g. {"Radley AC": "Radley Athletic Club"}).  Applied during
+                data cleaning so that all athletes from the same real-world club
+                are grouped together.
         """
         self.category_config = category_config
         self.guest_numbers = guest_numbers
@@ -48,6 +56,7 @@ class CompetitionConfig:
         self.womens_divisions = womens_divisions
         self.gender_mappings = gender_mappings
         self.category_mappings = category_mappings
+        self.club_aliases = club_aliases or {}
 
     def is_guest(self, race_number: str) -> bool:
         """Check if a race number belongs to a guest athlete.
@@ -63,15 +72,31 @@ class CompetitionConfig:
     def get_division(self, club: str, gender: str) -> str:
         """Get the division number for a club.
 
+        All teams that belong to the same club (A, B, C, …) share the club's
+        division.  The ``club`` argument should be the base club name as stored
+        on :class:`~pyresults.domain.Athlete` (i.e. without any team label).
+
         Args:
-            club: Club name
+            club: Base club name (e.g. "Abingdon AC")
             gender: "Male" or "Female"
 
         Returns:
-            Division number as string, "3" if not found in divisions 1-2
+            Division number as string ("1", "2", or "3").
+            Defaults to "3" if the club is not found in the mapping.
         """
         divisions = self.mens_divisions if gender == "Male" else self.womens_divisions
         return divisions.get(club, "3")
+
+    def normalize_club_name(self, club: str) -> str:
+        """Normalize a club name using the alias map.
+
+        Args:
+            club: Club name as it appears in the source data
+
+        Returns:
+            Canonical club name (unchanged if no alias exists)
+        """
+        return self.club_aliases.get(club, club)
 
     def map_category(self, gender: str, race_category: str) -> str:
         """Map a race category to a standard category code.
@@ -127,62 +152,49 @@ def build_default_config() -> CompetitionConfig:
     # Base path for data
     data_base_path = Path("./data")
 
-    # Men's divisions
+    # Men's divisions — keyed by base club name; all teams (A, B, C …) from a
+    # club inherit its division.  Clubs not listed here default to division 3.
     mens_divisions = {
-        "Abingdon AC A": "1",
-        "Didcot Runners A": "1",
-        "Headington RR A": "1",
-        "Newbury AC A": "1",
-        "Oxford City AC A": "1",
-        "Swindon Harriers A": "1",
-        "White Horse Harriers A": "1",
-        "Witney Road Runners A": "1",
-        "Abingdon AC B": "1",
-        "Headington RR B": "1",
-        "Headington RR C": "1",
-        "Newbury AC B": "1",
-        "Oxford City AC B": "1",
-        "Swindon Harriers B": "1",
-        "White Horse Harriers B": "1",
-        "Witney Road Runners B": "1",
-        "Witney Road Runners C": "1",
-        "Alchester Running Club A": "2",
-        "Banbury harriers AC A": "2",
-        "Bicester AC A": "2",
-        "Eynsham Road Runners A": "2",
-        "Harwell Harriers A": "2",
-        "Highworth RC A": "2",
-        "Thame Runners A": "2",
-        "Woodstock Harriers AC A": "2",
+        # Division 1
+        "Abingdon AC": "1",
+        "Didcot Runners": "1",
+        "Headington RR": "1",
+        "Newbury AC": "1",
+        "Oxford City AC": "1",
+        "Swindon Harriers": "1",
+        "White Horse Harriers": "1",
+        "Witney Road Runners": "1",
+        # Division 2
+        "Alchester Running Club": "2",
+        "Banbury harriers AC": "2",
+        "Bicester AC": "2",
+        "Eynsham Road Runners": "2",
+        "Harwell Harriers": "2",
+        "Highworth RC": "2",
+        "Thame Runners": "2",
+        "Woodstock Harriers AC": "2",
     }
 
-    # Women's divisions
+    # Women's divisions — same structure as mens_divisions.
     womens_divisions = {
-        "Abingdon AC A": "1",
-        "Banbury harriers AC A": "1",
-        "Headington RR A": "1",
-        "Highworth RC A": "1",
-        "Newbury AC A": "1",
-        "Oxford City AC A": "1",
-        "Swindon Harriers A": "1",
-        "Witney Road Runners A": "1",
-        "Abingdon AC B": "1",
-        "Headington RR B": "1",
-        "Newbury AC B": "1",
-        "Oxford City AC B": "1",
-        "Oxford City AC C": "1",
-        "Swindon Harriers B": "1",
-        "Witney Road Runners B": "1",
-        "Witney Road Runners C": "1",
-        "Witney Road Runners D": "1",
-        "Didcot Runners A": "2",
-        "Eynsham Road Runners A": "2",
-        "Hook Norton Harriers A": "2",
-        "Oxford Tri A": "2",
-        "Radley AC A": "2",
-        "Thame Runners A": "2",
-        "White Horse Harriers A": "2",
-        "Woodstock Harriers AC A": "2",
+        # Division 1
+        "Abingdon AC": "1",
+        "Banbury harriers AC": "1",
+        "Headington RR": "1",
+        "Highworth RC": "1",
+        "Newbury AC": "1",
+        "Oxford City AC": "1",
+        "Swindon Harriers": "1",
+        "Witney Road Runners": "1",
+        # Division 2
+        "Didcot Runners": "2",
+        "Eynsham Road Runners": "2",
+        "Hook Norton Harriers": "2",
+        "Oxford Tri": "2",
+        "Radley Athletic Club": "2",
+        "Thame Runners": "2",
+        "White Horse Harriers": "2",
+        "Woodstock Harriers AC": "2",
     }
 
     # Gender mappings
@@ -228,6 +240,11 @@ def build_default_config() -> CompetitionConfig:
     # Build category configuration
     category_config = build_default_categories()
 
+    # Club name aliases — maps alternate spellings to the canonical name.
+    club_aliases = {
+        "Radley AC": "Radley Athletic Club",
+    }
+
     return CompetitionConfig(
         category_config=category_config,
         guest_numbers=guests,
@@ -237,4 +254,5 @@ def build_default_config() -> CompetitionConfig:
         womens_divisions=womens_divisions,
         gender_mappings=gender_mappings,
         category_mappings=category_mappings,
+        club_aliases=club_aliases,
     )
