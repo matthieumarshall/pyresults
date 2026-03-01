@@ -67,5 +67,8 @@ ignore = []
 quote-style = "double"
 indent-style = "space"
 
+[tool.ty.environment]
+python = ".venv"
+
 [tool.ty.analysis]
 allowed-unresolved-imports = []
