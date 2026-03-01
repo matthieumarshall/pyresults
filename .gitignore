@@ -7,7 +7,7 @@ __pycache__
 .pytest_cache
 .venv
 dist
-output/
+/output/
 .coverage
 coverage.xml
 test_results.xml

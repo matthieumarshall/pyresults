@@ -20,7 +20,7 @@ dev = [
     "pytest-cov>=6.0.0",
     "ruff>=0.9.5",
     "pre-commit>=3.0.0",
-    "ty==0.0.14",
+    "ty>=0.0.14",
 ]
 
 #uv doesn't yet have a support to add dev scripts, so we use hatch for this to run uv run commands
