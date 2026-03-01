@@ -159,7 +159,7 @@ def build_default_config() -> CompetitionConfig:
         "Abingdon AC": "1",
         "Didcot Runners": "1",
         "Headington RR": "1",
-        "Newbury AC": "1",
+        "Newbury AC": "1",        
         "Oxford City AC": "1",
         "Swindon Harriers": "1",
         "White Horse Harriers": "1",

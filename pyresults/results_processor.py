@@ -224,3 +224,9 @@ class ResultsProcessor:
                 config=self.config, output_path=Path("./output/results.pdf")
             )
             pdf_generator.generate()
+
+            logger.info("Generating top-5 PDF output...")
+            top5_pdf_generator = PdfOutputGenerator(
+                config=self.config, output_path=Path("./output/results_top5.pdf"), max_rows=5
+            )
+            top5_pdf_generator.generate()

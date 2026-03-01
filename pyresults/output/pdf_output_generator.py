@@ -42,15 +42,17 @@ class PdfOutputGenerator(IOutputGenerator):
     converts the resulting DataFrames into styled PDF tables.
     """
 
-    def __init__(self, config: CompetitionConfig, output_path: Path):
+    def __init__(self, config: CompetitionConfig, output_path: Path, max_rows: int | None = None):
         """Initialize PDF generator.
 
         Args:
             config: Competition configuration
             output_path: Path where PDF file should be saved
+            max_rows: If set, limit each category table to this many rows
         """
         self.config = config
         self.output_path = output_path
+        self.max_rows = max_rows
         self.data_provider = ScoreDataProvider(config)
 
     def generate(self) -> None:
@@ -64,6 +66,10 @@ class PdfOutputGenerator(IOutputGenerator):
         all_data = self.data_provider.get_all_category_data()
         logger.debug(f"Found {len(all_data)} categories to include in PDF")
 
+        # Reorder: youth categories first (as-is), then all adult women,
+        # then all adult men.
+        all_data = self._reorder_for_pdf(all_data)
+
         for category_data in all_data:
             self._add_category_table(pdf, category_data)
 
@@ -76,6 +82,34 @@ class PdfOutputGenerator(IOutputGenerator):
             logger.error(f"Failed to save PDF file to {self.output_path}: {e}")
             raise OSError(f"Failed to save PDF file to {self.output_path}: {e}") from e
 
+    # ------------------------------------------------------------------
+    # Ordering helpers
+    # ------------------------------------------------------------------
+
+    _ADULT_WOMEN_CODES = {"U20W", "SW", "WV40", "WV50", "WV60", "WV70", "Team Women", "WomensOverall"}
+    _ADULT_MEN_CODES = {"U20M", "SM", "MV40", "MV50", "MV60", "MV70", "Team Men", "MensOverall"}
+
+    def _reorder_for_pdf(self, data: list[CategoryDisplayData]) -> list[CategoryDisplayData]:
+        """Reorder categories so adult women tables precede adult men tables.
+
+        Youth categories keep their original order. For U20 and later,
+        all women's tables (individual, teams, overall) come first,
+        followed by all men's tables.
+        """
+        youth: list[CategoryDisplayData] = []
+        adult_women: list[CategoryDisplayData] = []
+        adult_men: list[CategoryDisplayData] = []
+
+        for item in data:
+            if item.category_code in self._ADULT_WOMEN_CODES:
+                adult_women.append(item)
+            elif item.category_code in self._ADULT_MEN_CODES:
+                adult_men.append(item)
+            else:
+                youth.append(item)
+
+        return youth + adult_women + adult_men
+
     def _add_category_table(self, pdf: FPDF, data: CategoryDisplayData) -> None:
         """Add a table for a specific category.
 
@@ -85,8 +119,16 @@ class PdfOutputGenerator(IOutputGenerator):
         """
         df = data.dataframe
 
-        # Limit to top results to fit on page
-        df = df.head(50)
+        # Limit rows: use max_rows if configured, otherwise cap at 50.
+        # Exception: SM and SW show all athletes with a valid score.
+        if self.max_rows is not None:
+            df = df.head(self.max_rows)
+        elif data.category_code in ("SM", "SW"):
+            # Keep only athletes that have a valid score (at least 4 rounds)
+            if "Score" in df.columns:
+                df = df[df["Score"] != ""].copy()
+        else:
+            df = df.head(50)
 
         # Start new page for this category
         pdf.add_page()

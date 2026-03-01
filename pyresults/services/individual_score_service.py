@@ -1,5 +1,6 @@
 """Individual score aggregation service."""
 
+import functools
 import logging
 
 from pyresults.config import CompetitionConfig
@@ -110,6 +111,9 @@ class IndividualScoreService:
             )
         )
 
+        # Apply head-to-head tiebreak for the top 4
+        updated_scores = self._apply_head_to_head_tiebreak(updated_scores, rounds_to_count)
+
         # Save updated scores
         self.score_repo.save_scores(category_code, updated_scores)
         logger.info(
@@ -177,6 +181,9 @@ class IndividualScoreService:
             )
         )
 
+        # Apply head-to-head tiebreak for the top 4
+        updated_scores = self._apply_head_to_head_tiebreak(updated_scores, rounds_to_count)
+
         self.score_repo.save_scores(category_code, updated_scores)
         logger.info(
             f"Saved {len(updated_scores)} overall scores for {category_code} "
@@ -211,6 +218,95 @@ class IndividualScoreService:
         )
         for category in overall_categories:
             self.update_scores_for_overall_category(category.code)
+
+    def _apply_head_to_head_tiebreak(
+        self, scores: list[Score], rounds_to_count: int, top_n: int = 4
+    ) -> list[Score]:
+        """Re-sort tied athletes in the top N positions using head-to-head.
+
+        For each group of athletes sharing the same total score within the
+        top *top_n* positions, those athletes are re-ordered so that an
+        athlete who beat another head-to-head in more rounds is ranked
+        higher.
+
+        Args:
+            scores: Pre-sorted list of scores.
+            rounds_to_count: Number of best rounds used for total score.
+            top_n: Only consider ties within the first *top_n* positions.
+
+        Returns:
+            A new list with ties in the top N resolved by head-to-head.
+        """
+        if len(scores) <= 1:
+            return scores
+
+        # Only look at the top_n athletes (may expand if tie extends beyond)
+        top = scores[:top_n]
+        rest = scores[top_n:]
+
+        # Group the top athletes by their total score
+        groups: list[list[Score]] = []
+        current_group: list[Score] = [top[0]]
+        current_total = top[0].calculate_total_score(rounds_to_count)
+
+        for s in top[1:]:
+            total = s.calculate_total_score(rounds_to_count)
+            if total == current_total:
+                current_group.append(s)
+            else:
+                groups.append(current_group)
+                current_group = [s]
+                current_total = total
+        groups.append(current_group)
+
+        # Re-sort each tied group using head-to-head
+        resolved: list[Score] = []
+        for group in groups:
+            if len(group) <= 1:
+                resolved.extend(group)
+            else:
+                resolved.extend(self._sort_by_head_to_head(group))
+
+        return resolved + rest
+
+    @staticmethod
+    def _head_to_head_wins(a: Score, b: Score) -> tuple[int, int]:
+        """Count head-to-head wins between two athletes.
+
+        A "win" is a round where both athletes competed and one had a
+        lower (better) position than the other.
+
+        Returns:
+            (wins_for_a, wins_for_b)
+        """
+        common_rounds = set(a.round_scores) & set(b.round_scores)
+        a_wins = 0
+        b_wins = 0
+        for r in common_rounds:
+            if a.round_scores[r] < b.round_scores[r]:
+                a_wins += 1
+            elif b.round_scores[r] < a.round_scores[r]:
+                b_wins += 1
+        return a_wins, b_wins
+
+    def _sort_by_head_to_head(self, group: list[Score]) -> list[Score]:
+        """Sort a tied group of scores using pairwise head-to-head results.
+
+        Uses a comparison function: athlete A is ranked higher than B if A
+        has more head-to-head wins against B across the rounds they both
+        raced.  If head-to-head is also tied, the original order is
+        preserved.
+        """
+
+        def cmp(a: Score, b: Score) -> int:
+            a_wins, b_wins = self._head_to_head_wins(a, b)
+            if a_wins > b_wins:
+                return -1  # a ranks higher
+            if b_wins > a_wins:
+                return 1  # b ranks higher
+            return 0  # keep original order
+
+        return sorted(group, key=functools.cmp_to_key(cmp))
 
     def _load_or_create_scores(self, category_code: str) -> list[Score]:
         """Load existing scores or return empty list.
