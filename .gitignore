@@ -8,3 +8,6 @@ __pycache__
 .venv
 dist
 output/
+.coverage
+coverage.xml
+test_results.xml
