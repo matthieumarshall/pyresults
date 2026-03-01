@@ -19,7 +19,7 @@ A Python library for calculating and publishing standings for the **Oxfordshire 
 
 ### Prerequisites
 
-- Python 3.10–3.11
+- Python 3.10â€“3.11
 - [uv](https://docs.astral.sh/uv/getting-started/installation/) package manager
 
 ### Install uv
@@ -55,15 +55,15 @@ Example directory layout for a five-round season:
 ```
 data/
 +-- r1/
-¦   +-- Men.csv
-¦   +-- Women.csv
-¦   +-- U9.csv
-¦   +-- U11.csv
-¦   +-- U13.csv
-¦   +-- U15.csv
-¦   +-- U17.csv
+Â¦   +-- Men.csv
+Â¦   +-- Women.csv
+Â¦   +-- U9.csv
+Â¦   +-- U11.csv
+Â¦   +-- U13.csv
+Â¦   +-- U15.csv
+Â¦   +-- U17.csv
 +-- r2/
-¦   +-- ...
+Â¦   +-- ...
 +-- scores/          # written by the tool; do not edit manually
 ```
 
