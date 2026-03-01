@@ -40,24 +40,6 @@ jobs:
       - name: Install dependencies
         run: uv sync --group dev
 
-      - name: Debug - Python and venv info
-        run: |
-          echo "=== uv python info ==="
-          uv run python --version
-          uv run python -c "import sys; print('sys.prefix:', sys.prefix)"
-          uv run python -c "import sys; print('sys.path:', sys.path)"
-          echo "=== .venv structure ==="
-          ls -la .venv/
-          ls -la .venv/lib/
-          ls -la .venv/lib/python3.11/site-packages/ | grep -i pyresults || echo "pyresults NOT found in site-packages"
-          echo "=== editable install pth files ==="
-          find .venv -name "*.pth" | xargs cat 2>/dev/null || echo "no .pth files"
-          find .venv -name "*.dist-info" -name "*pyresults*" -o -name "direct_url.json" 2>/dev/null | head -20
-          find .venv -path "*pyresults*dist-info*" 2>/dev/null | head -20
-          echo "=== try importing pyresults ==="
-          uv run python -c "import pyresults; print('pyresults imported OK from:', pyresults.__file__)"
-          uv run python -c "from pyresults.output.score_data_provider import ScoreDataProvider; print('ScoreDataProvider imported OK')"
-
       - name: ty check
         run: uv run ty check --python .venv
 
@@ -73,24 +55,25 @@ jobs:
         with:
           python-version: "3.11"
 
-      # Export all dependencies (including dev) to a requirements file so
-      # pip-audit can scan them without needing to install them into its own env.
-      - name: Export dependencies
-        run: uv export --no-hashes --all-groups --format requirements-txt -o requirements-audit.txt
-
-      # pip-audit (https://github.com/pypa/pip-audit) is a free, open-source
-      # tool from PyPA that checks for known CVEs via the OSV / PyPI advisory DBs.
+      # osv-scanner (https://github.com/google/osv-scanner) is a free, open-source
+      # tool from Google that checks for known CVEs via the OSV advisory DB.
+      # It scans uv.lock directly and outputs SARIF natively.
       # --continue-on-error so the SARIF upload step always runs even when
-      # vulnerabilities are found (pip-audit exits non-zero in that case).
-      - name: Scan for vulnerabilities with pip-audit
-        run: uvx pip-audit -r requirements-audit.txt --format sarif -o pip-audit.sarif
+      # vulnerabilities are found (osv-scanner exits non-zero in that case).
+      - name: Install osv-scanner
+        run: |
+          curl -sSfL https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 -o osv-scanner
+          chmod +x osv-scanner
+
+      - name: Scan for vulnerabilities with osv-scanner
+        run: ./osv-scanner --lockfile uv.lock --format sarif --output osv-scanner.sarif
         continue-on-error: true
 
       - name: Upload SARIF to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: pip-audit.sarif
-          category: pip-audit
+          sarif_file: osv-scanner.sarif
+          category: osv-scanner
 
   test:
     name: Test & coverage
