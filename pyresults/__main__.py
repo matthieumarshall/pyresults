@@ -7,9 +7,11 @@ SOLID-based architecture with dependency injection.
 import logging
 import sys
 from argparse import ArgumentParser
+from pathlib import Path
 
 from pyresults.config import build_default_config
 from pyresults.logging_config import setup_logging
+from pyresults.output import RoundResultsExcelGenerator
 from pyresults.results_processor import ResultsProcessor
 
 logger = logging.getLogger(__name__)
@@ -26,6 +28,14 @@ if __name__ == "__main__":
     parser.add_argument("--excel", action="store_true", default=False, help="Generate Excel output")
     parser.add_argument("--pdf", action="store_true", default=False, help="Generate PDF output")
     parser.add_argument(
+        "--round-excel",
+        metavar="ROUND",
+        help=(
+            "Generate a per-round Excel workbook (e.g. 'OXL Round 3 Final Results.xlsx') "
+            "for the specified round (e.g. r3).  One sheet is created per race."
+        ),
+    )
+    parser.add_argument(
         "--log-level",
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
@@ -39,6 +49,11 @@ if __name__ == "__main__":
         rounds.extend(item.split(","))
     args.rounds = [r.strip() for r in rounds if r.strip()]
 
+    # Determine whether the full processing pipeline is needed.
+    # --round-excel reads already-processed race CSVs directly, so the pipeline
+    # can be skipped when it is the sole requested action.
+    only_round_excel = args.round_excel and not (args.excel or args.pdf)
+
     # Initialize logging
     setup_logging(level=args.log_level)
 
@@ -49,10 +64,22 @@ if __name__ == "__main__":
         # Create processor with dependency injection
         processor = ResultsProcessor(config)
 
-        # Process rounds and generate outputs
-        processor.process_rounds(
-            rounds_to_process=args.rounds, create_excel=args.excel, create_pdf=args.pdf
-        )
+        # Process rounds and generate season-standings outputs.
+        # Skipped when --round-excel is the only requested action.
+        if not only_round_excel:
+            processor.process_rounds(
+                rounds_to_process=args.rounds, create_excel=args.excel, create_pdf=args.pdf
+            )
+
+        if args.round_excel:
+            logger.info(f"Generating round Excel workbook for '{args.round_excel}'...")
+            generator = RoundResultsExcelGenerator(
+                config=config,
+                round_id=args.round_excel,
+                output_dir=Path("./output"),
+            )
+            output_path = generator.generate()
+            logger.info(f"Round Excel workbook saved to {output_path}")
 
         logger.info("Processing completed successfully")
 
