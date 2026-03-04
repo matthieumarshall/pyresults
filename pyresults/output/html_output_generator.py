@@ -1,8 +1,10 @@
 """HTML output generator implementation.
 
 Generates a self-contained, interactive HTML file that mimics the PDF output
-layout while adding interactivity such as hovering over a team's round score
-to see a tooltip listing the contributing athletes and their positions.
+layout while adding interactivity such as:
+- Hovering over a team's round score to see the contributing athletes.
+- Hovering over an individual athlete's total score to see the round-by-round
+  breakdown (which rounds counted, which was dropped, which were not run).
 """
 
 import html
@@ -63,6 +65,9 @@ class HtmlOutputGenerator(IOutputGenerator):
       athletes who contributed to that score and their finishing positions.
     - Hovering over a team's total score cell shows a summary of all
       contributing athletes grouped by round.
+    - Hovering over an individual athlete's total score cell shows a breakdown
+      of which rounds were counted (best n-1 of n), which was dropped, and
+      which rounds the athlete did not enter.
     - A sticky navigation sidebar lets users jump directly to any category.
     """
 
@@ -289,6 +294,15 @@ class HtmlOutputGenerator(IOutputGenerator):
         round_cols = [c for c in df.columns if c in _DISPLAY_TO_ROUND_NUM]
         score_col_present = "Score" in df.columns
 
+        # Precompute rounds_to_count for individual-score tooltips.
+        # A round column is considered "processed" if it has at least one
+        # non-null value in the DataFrame.
+        if not data.is_team:
+            n_processed = sum(1 for c in round_cols if df[c].notna().any())
+            ind_rounds_to_count = n_processed if n_processed <= 1 else n_processed - 1
+        else:
+            ind_rounds_to_count = 0
+
         lines: list[str] = ["          <table>", "            <thead>", "              <tr>"]
 
         for col in df.columns:
@@ -318,6 +332,24 @@ class HtmlOutputGenerator(IOutputGenerator):
                     elif col == "Score" and score_col_present and team_name in runner_data:
                         tooltip_content = self._total_score_tooltip(runner_data[team_name])
 
+                    if tooltip_content:
+                        safe_tooltip = html.escape(tooltip_content, quote=True)
+                        extra_attrs = f' data-tooltip="{safe_tooltip}"'
+                        extra_class = " has-tooltip"
+
+                elif not data.is_team and col == "Score" and score_col_present and cell_value:
+                    # Build per-athlete score breakdown tooltip for individual categories
+                    athlete_scores: dict[str, int] = {}
+                    for rc in round_cols:
+                        raw = row[rc]
+                        if pd.notna(raw) and str(raw).strip():
+                            try:
+                                athlete_scores[rc] = int(float(raw))
+                            except (ValueError, TypeError):
+                                pass
+                    tooltip_content = self._individual_score_tooltip(
+                        round_cols, athlete_scores, ind_rounds_to_count
+                    )
                     if tooltip_content:
                         safe_tooltip = html.escape(tooltip_content, quote=True)
                         extra_attrs = f' data-tooltip="{safe_tooltip}"'
@@ -358,6 +390,55 @@ class HtmlOutputGenerator(IOutputGenerator):
             runner_list = ", ".join(runners)
             parts.append(f"{round_col}: {runner_list}")
         return "\n".join(parts)
+
+    @staticmethod
+    def _individual_score_tooltip(
+        round_cols: list[str],
+        athlete_scores: dict[str, int],
+        rounds_to_count: int,
+    ) -> str:
+        """Format tooltip for an individual athlete's total score cell.
+
+        Shows each round's score, marking which were counted toward the
+        total (best ``rounds_to_count``) and which was dropped (when
+        the athlete ran more rounds than required).
+
+        Args:
+            round_cols: Ordered list of round display column names.
+            athlete_scores: Mapping of round display name -> position score.
+            rounds_to_count: Number of best rounds that count toward the total.
+
+        Returns:
+            Tooltip string, or empty string if the score is incomplete.
+        """
+        if not athlete_scores or rounds_to_count < 1:
+            return ""
+
+        n_attended = len(athlete_scores)
+        if n_attended < rounds_to_count:
+            # Insufficient rounds – no valid score, skip tooltip
+            return ""
+
+        # Determine which rounds are counted (best = lowest scores)
+        sorted_by_score = sorted(athlete_scores.items(), key=lambda x: x[1])
+        counted_rounds = {r for r, _ in sorted_by_score[:rounds_to_count]}
+        dropped_rounds = {r for r, _ in sorted_by_score[rounds_to_count:]}
+
+        if n_attended == rounds_to_count:
+            header = f"Score breakdown ({rounds_to_count} rounds counted):"
+        else:
+            header = f"Score breakdown (best {rounds_to_count} of {n_attended} attended):"
+
+        lines: list[str] = [header]
+        for col in round_cols:
+            if col in counted_rounds:
+                lines.append(f"  {col}: {athlete_scores[col]}  ✓")
+            elif col in dropped_rounds:
+                lines.append(f"  {col}: {athlete_scores[col]}  (dropped)")
+            else:
+                lines.append(f"  {col}: —  (did not run)")
+
+        return "\n".join(lines)
 
     # ------------------------------------------------------------------
     # Cell formatting helper (mirrors PdfOutputGenerator._format_cell)

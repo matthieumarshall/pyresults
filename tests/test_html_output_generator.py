@@ -292,8 +292,8 @@ class TestTooltips:
         content = output_path.read_text(encoding="utf-8")
         assert "has-tooltip" in content
 
-    def test_individual_category_has_no_tooltip(self, tmp_config, tmp_path):
-        """Individual (non-team) category tables should never have tooltips."""
+    def test_individual_category_has_score_tooltip(self, tmp_config, tmp_path):
+        """Individual (non-team) Score cells should have a breakdown tooltip."""
         scores = tmp_config.data_base_path / "scores"
         _write_csv(
             scores / "U13B.csv",
@@ -305,8 +305,9 @@ class TestTooltips:
         generator.generate()
 
         content = output_path.read_text(encoding="utf-8")
-        # data-tooltip=" (with value) must not appear for individual categories
-        assert 'data-tooltip="' not in content
+        # Individual score breakdown tooltip should be present
+        assert 'data-tooltip="' in content
+        assert "Score breakdown" in content
 
     def test_tooltip_javascript_present(self, tmp_config, tmp_path):
         """The page must include the JavaScript that drives tooltip display."""
@@ -412,6 +413,133 @@ class TestHtmlEscaping:
 
         content = output_path.read_text(encoding="utf-8")
         assert "Alice &amp; Bob" in content
+
+
+# ---------------------------------------------------------------------------
+# Individual score tooltips
+# ---------------------------------------------------------------------------
+
+
+class TestIndividualScoreTooltips:
+    """Verify that score breakdown tooltips appear on individual Score cells."""
+
+    def test_tooltip_present_on_score_cell(self, tmp_config, tmp_path):
+        """A has-tooltip cell should be rendered on the Score column for individual categories."""
+        scores = tmp_config.data_base_path / "scores"
+        # 2 rounds processed → rounds_to_count = 1, athlete attended both → 1 dropped
+        _write_csv(scores / "U13B.csv", "Name,Club,r1,r2,score\nAlice,C,3,1,1")
+
+        output_path = tmp_path / "output" / "results.html"
+        generator = HtmlOutputGenerator(config=tmp_config, output_path=output_path)
+        generator.generate()
+
+        content = output_path.read_text(encoding="utf-8")
+        assert "data-tooltip" in content
+
+    def test_tooltip_shows_counted_round(self, tmp_config, tmp_path):
+        """The tooltip text should mark the counted round with ✓."""
+        scores = tmp_config.data_base_path / "scores"
+        _write_csv(scores / "U13B.csv", "Name,Club,r1,r2,score\nAlice,C,3,1,1")
+
+        output_path = tmp_path / "output" / "results.html"
+        generator = HtmlOutputGenerator(config=tmp_config, output_path=output_path)
+        generator.generate()
+
+        content = output_path.read_text(encoding="utf-8")
+        # ✓ character should appear in the tooltip (HTML-escaped in attribute)
+        assert "✓" in content or "&#10003;" in content or "%E2%9C%93" in content
+
+    def test_tooltip_shows_dropped_round(self, tmp_config, tmp_path):
+        """The tooltip must mention the dropped round when athlete ran more than rounds_to_count."""
+        scores = tmp_config.data_base_path / "scores"
+        # 2 rounds → rounds_to_count=1; Alice ran both, r2=1 is best, r1=3 dropped
+        _write_csv(scores / "U13B.csv", "Name,Club,r1,r2,score\nAlice,C,3,1,1")
+
+        output_path = tmp_path / "output" / "results.html"
+        generator = HtmlOutputGenerator(config=tmp_config, output_path=output_path)
+        generator.generate()
+
+        content = output_path.read_text(encoding="utf-8")
+        assert "dropped" in content
+
+    def test_no_tooltip_when_score_incomplete(self, tmp_config, tmp_path):
+        """No score tooltip when athlete hasn't run enough rounds to have a valid score."""
+        scores = tmp_config.data_base_path / "scores"
+        # 3 rounds processed → rounds_to_count=2; Bob only ran 1 round (score would be 999999)
+        # Bob's score cell will be empty so no tooltip should be added
+        _write_csv(
+            scores / "U13B.csv",
+            "Name,Club,r1,r2,r3,score\nAlice,C,1,2,,3\nBob,D,5,,,",
+        )
+
+        output_path = tmp_path / "output" / "results.html"
+        generator = HtmlOutputGenerator(config=tmp_config, output_path=output_path)
+        generator.generate()
+
+        content = output_path.read_text(encoding="utf-8")
+        # Alice should have a tooltip; Bob's empty score cell should not
+        assert "data-tooltip" in content
+
+    def test_individual_score_tooltip_helper_drop_worst(self, tmp_config):
+        """_individual_score_tooltip marks the worst round as dropped."""
+        gen = HtmlOutputGenerator(config=tmp_config, output_path=tmp_config.data_base_path)
+        result = gen._individual_score_tooltip(
+            round_cols=["R 1", "R 2", "R 3"],
+            athlete_scores={"R 1": 5, "R 2": 1, "R 3": 3},
+            rounds_to_count=2,
+        )
+        assert "R 1" in result
+        assert "dropped" in result
+        assert "R 2" in result
+        assert "✓" in result
+
+    def test_individual_score_tooltip_helper_all_rounds_counted(self, tmp_config):
+        """When rounds attended equals rounds_to_count, no round is dropped."""
+        gen = HtmlOutputGenerator(config=tmp_config, output_path=tmp_config.data_base_path)
+        result = gen._individual_score_tooltip(
+            round_cols=["R 1", "R 2"],
+            athlete_scores={"R 1": 2, "R 2": 3},
+            rounds_to_count=2,
+        )
+        assert "dropped" not in result
+        assert "R 1" in result
+        assert "R 2" in result
+
+    def test_individual_score_tooltip_helper_did_not_run(self, tmp_config):
+        """Rounds the athlete did not enter should appear as 'did not run'."""
+        gen = HtmlOutputGenerator(config=tmp_config, output_path=tmp_config.data_base_path)
+        result = gen._individual_score_tooltip(
+            round_cols=["R 1", "R 2", "R 3"],
+            athlete_scores={"R 1": 2, "R 3": 4},
+            rounds_to_count=2,
+        )
+        assert "did not run" in result
+        assert "R 2" in result
+
+    def test_individual_score_tooltip_helper_incomplete_returns_empty(self, tmp_config):
+        """Returns empty string when athlete has fewer rounds than rounds_to_count."""
+        gen = HtmlOutputGenerator(config=tmp_config, output_path=tmp_config.data_base_path)
+        result = gen._individual_score_tooltip(
+            round_cols=["R 1", "R 2", "R 3"],
+            athlete_scores={"R 1": 2},
+            rounds_to_count=2,
+        )
+        assert result == ""
+
+    def test_no_individual_tooltip_on_team_score_cell(self, tmp_config, tmp_path):
+        """Individual score tooltip logic must not fire for team categories."""
+        scores = tmp_config.data_base_path / "scores"
+        _write_csv(scores / "teams" / "U13B.csv", "Team,r1,r2,score\nOxford A,6,8,14")
+
+        output_path = tmp_path / "output" / "results.html"
+        generator = HtmlOutputGenerator(config=tmp_config, output_path=output_path)
+        generator.generate()
+
+        content = output_path.read_text(encoding="utf-8")
+        # Team tooltips only come from runner data files; no runner files written here
+        # so no tooltip at all, and certainly no individual-score breakdown text
+        assert "did not run" not in content
+        assert "dropped" not in content
 
 
 # ---------------------------------------------------------------------------
