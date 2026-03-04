@@ -12,6 +12,7 @@ from .excel_output_generator import ExcelOutputGenerator
 from .html_output_generator import HtmlOutputGenerator
 from .interfaces import IOutputGenerator
 from .pdf_output_generator import PdfOutputGenerator
+from .round_results_excel_generator import RoundResultsExcelGenerator
 from .score_data_provider import CategoryDisplayData, ScoreDataProvider
 
 __all__ = [
@@ -20,5 +21,6 @@ __all__ = [
     "ExcelOutputGenerator",
     "HtmlOutputGenerator",
     "PdfOutputGenerator",
+    "RoundResultsExcelGenerator",
     "ScoreDataProvider",
 ]
