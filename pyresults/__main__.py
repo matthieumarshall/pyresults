@@ -25,6 +25,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--excel", action="store_true", default=False, help="Generate Excel output")
     parser.add_argument("--pdf", action="store_true", default=False, help="Generate PDF output")
+    parser.add_argument("--html", action="store_true", default=False, help="Generate HTML output")
     parser.add_argument(
         "--log-level",
         default="INFO",
@@ -51,7 +52,10 @@ if __name__ == "__main__":
 
         # Process rounds and generate outputs
         processor.process_rounds(
-            rounds_to_process=args.rounds, create_excel=args.excel, create_pdf=args.pdf
+            rounds_to_process=args.rounds,
+            create_excel=args.excel,
+            create_pdf=args.pdf,
+            create_html=args.html,
         )
 
         logger.info("Processing completed successfully")
