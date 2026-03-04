@@ -10,6 +10,7 @@ from pathlib import Path
 from pyresults.config import CompetitionConfig
 from pyresults.output import (
     ExcelOutputGenerator,
+    HtmlOutputGenerator,
     IOutputGenerator,
     PdfOutputGenerator,
 )
@@ -68,7 +69,11 @@ class ResultsProcessor:
         self.output_generators: list[IOutputGenerator] = []
 
     def process_rounds(
-        self, rounds_to_process: list[str], create_excel: bool = False, create_pdf: bool = False
+        self,
+        rounds_to_process: list[str],
+        create_excel: bool = False,
+        create_pdf: bool = False,
+        create_html: bool = False,
     ) -> None:
         """Process race results and generate outputs.
 
@@ -83,6 +88,7 @@ class ResultsProcessor:
             rounds_to_process: List of round identifiers to process (e.g., ["r1", "r2"])
             create_excel: Whether to generate Excel output
             create_pdf: Whether to generate PDF output
+            create_html: Whether to generate HTML output
         """
         # Step 1: Process race result files for each round
         for round_number in rounds_to_process:
@@ -95,8 +101,8 @@ class ResultsProcessor:
         self._update_team_scores()
 
         # Step 4: Generate output files
-        if create_excel or create_pdf:
-            self._generate_outputs(create_excel, create_pdf)
+        if create_excel or create_pdf or create_html:
+            self._generate_outputs(create_excel, create_pdf, create_html)
 
     def _process_round(self, round_number: str) -> None:
         """Process all race result files for a given round.
@@ -204,12 +210,13 @@ class ResultsProcessor:
         logger.info("Updating team scores...")
         self.team_score_service.update_all_team_categories()
 
-    def _generate_outputs(self, create_excel: bool, create_pdf: bool) -> None:
+    def _generate_outputs(self, create_excel: bool, create_pdf: bool, create_html: bool) -> None:
         """Generate output files.
 
         Args:
             create_excel: Whether to generate Excel output
             create_pdf: Whether to generate PDF output
+            create_html: Whether to generate HTML output
         """
         if create_excel:
             logger.info("Generating Excel output...")
@@ -230,3 +237,16 @@ class ResultsProcessor:
                 config=self.config, output_path=Path("./output/results_top5.pdf"), max_rows=5
             )
             top5_pdf_generator.generate()
+
+        if create_html:
+            logger.info("Generating HTML output...")
+            html_generator = HtmlOutputGenerator(
+                config=self.config, output_path=Path("./output/results.html")
+            )
+            html_generator.generate()
+
+            logger.info("Generating top-5 HTML output...")
+            top5_html_generator = HtmlOutputGenerator(
+                config=self.config, output_path=Path("./output/results_top5.html"), max_rows=5
+            )
+            top5_html_generator.generate()
