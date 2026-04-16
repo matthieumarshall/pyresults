@@ -36,12 +36,12 @@ from pyresults.domain import (
     Team,
 )
 from pyresults.repositories import (
-    IRaceResultRepository,
-    IScoreRepository,
-    ITeamResultRepository,
     InMemoryRaceResultRepository,
     InMemoryScoreRepository,
     InMemoryTeamResultRepository,
+    IRaceResultRepository,
+    IScoreRepository,
+    ITeamResultRepository,
 )
 from pyresults.services import (
     IndividualScoreService,
