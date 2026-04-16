@@ -17,6 +17,7 @@ from pyresults.output import (
 from pyresults.repositories import (
     CsvRaceResultRepository,
     CsvScoreRepository,
+    CsvTeamResultRepository,
 )
 from pyresults.services import (
     IndividualScoreService,
@@ -52,6 +53,12 @@ class ResultsProcessor:
         self.score_repo = CsvScoreRepository(
             base_path=config.data_base_path / "scores", round_numbers=config.round_numbers
         )
+        self.team_result_repo = CsvTeamResultRepository(base_path=config.data_base_path)
+        self.team_score_repo = CsvScoreRepository(
+            base_path=config.data_base_path / "scores" / "teams",
+            round_numbers=config.round_numbers,
+            rounds_to_drop=0,
+        )
 
         # Initialize services
         self.race_processor = RaceProcessorService(config=config, repository=self.race_result_repo)
@@ -62,6 +69,8 @@ class ResultsProcessor:
         self.team_score_service = TeamScoreService(
             config=config,
             race_result_repo=self.race_result_repo,
+            team_result_repo=self.team_result_repo,
+            team_score_repo=self.team_score_repo,
             team_scoring_service=self.team_scoring_service,
         )
 
@@ -174,7 +183,7 @@ class ResultsProcessor:
     def _save_team_results(
         self, teams, category_code: str, round_number: str, team_size: int, penalty_score: int
     ) -> None:
-        """Save team results to CSV file.
+        """Save team results via the team result repository.
 
         Args:
             teams: List of Team objects
@@ -183,9 +192,6 @@ class ResultsProcessor:
             team_size: Number of athletes per team
             penalty_score: Penalty score for missing athletes
         """
-        import pandas as pd
-
-        # Create team result data
         result_data = self.team_scoring_service.create_team_result_data(
             teams, team_size, penalty_score
         )
@@ -193,12 +199,7 @@ class ResultsProcessor:
         if not result_data:
             return
 
-        # Save to CSV
-        output_path = self.config.data_base_path / round_number / "teams" / f"{category_code}.csv"
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-
-        df = pd.DataFrame(result_data)
-        df.to_csv(output_path, index=False)
+        self.team_result_repo.save_team_results(category_code, round_number, result_data)
 
     def _update_individual_scores(self) -> None:
         """Update individual scores for all categories."""

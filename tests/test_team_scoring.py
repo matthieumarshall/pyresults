@@ -7,6 +7,8 @@ import pandas as pd
 
 from pyresults.config import build_default_config
 from pyresults.domain import Athlete, DomainRaceResult, Team
+from pyresults.repositories.csv_score_repository import CsvScoreRepository
+from pyresults.repositories.csv_team_result_repository import CsvTeamResultRepository
 from pyresults.services import TeamScoreService, TeamScoringService
 
 
@@ -555,16 +557,21 @@ class TestOverallTeamAggregation:
         service = TeamScoreService(
             config=config,
             race_result_repo=Mock(),
+            team_result_repo=CsvTeamResultRepository(config.data_base_path),
+            team_score_repo=CsvScoreRepository(
+                base_path=config.data_base_path / "scores" / "teams",
+                round_numbers=config.round_numbers,
+                rounds_to_drop=0,
+            ),
             team_scoring_service=TeamScoringService(config),
         )
 
         service.update_team_scores_for_category("U13B")
 
         output_file = config.data_base_path / "scores" / "teams" / "U13B.csv"
-        assert output_file.exists()
 
         df = pd.read_csv(output_file)
-        row = df[df["Team"] == "Club B A"].iloc[0]
+        row = df[df["Name"] == "Club B A"].iloc[0]
 
         assert int(row["r1"]) == 26
         assert int(row["score"]) == 26
@@ -587,6 +594,12 @@ class TestOverallTeamAggregation:
         service = TeamScoreService(
             config=config,
             race_result_repo=Mock(),
+            team_result_repo=CsvTeamResultRepository(config.data_base_path),
+            team_score_repo=CsvScoreRepository(
+                base_path=config.data_base_path / "scores" / "teams",
+                round_numbers=config.round_numbers,
+                rounds_to_drop=0,
+            ),
             team_scoring_service=TeamScoringService(config),
         )
 
@@ -595,8 +608,8 @@ class TestOverallTeamAggregation:
         output_file = config.data_base_path / "scores" / "teams" / "U13B.csv"
         df = pd.read_csv(output_file)
 
-        club_a = df[df["Team"] == "Club A A"].iloc[0]
-        club_b = df[df["Team"] == "Club B A"].iloc[0]
+        club_a = df[df["Name"] == "Club A A"].iloc[0]
+        club_b = df[df["Name"] == "Club B A"].iloc[0]
 
         # Total should be sum of ALL rounds, not best 2-of-3
         assert int(club_a["score"]) == 10 + 15 + 12  # 37
@@ -646,13 +659,19 @@ class TestOverallTeamAggregation:
         service = TeamScoreService(
             config=config,
             race_result_repo=Mock(),
+            team_result_repo=CsvTeamResultRepository(config.data_base_path),
+            team_score_repo=CsvScoreRepository(
+                base_path=config.data_base_path / "scores" / "teams",
+                round_numbers=config.round_numbers,
+                rounds_to_drop=0,
+            ),
             team_scoring_service=TeamScoringService(config),
         )
         service.update_team_scores_for_category("U13B")
 
         output_file = config.data_base_path / "scores" / "teams" / "U13B.csv"
         df = pd.read_csv(output_file)
-        team_order = df["Team"].tolist()
+        team_order = df["Name"].tolist()
 
         # Complete teams first (sorted by total score)
         assert team_order[0] == "Complete A"  # 10+12+11+13 = 46

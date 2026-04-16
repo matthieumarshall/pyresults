@@ -1,13 +1,10 @@
-"""Team score aggregation service."""
+﻿"""Team score aggregation service."""
 
 import logging
-from pathlib import Path
-
-import pandas as pd
 
 from pyresults.config import CompetitionConfig
 from pyresults.domain import Score
-from pyresults.repositories import IRaceResultRepository
+from pyresults.repositories import IRaceResultRepository, IScoreRepository, ITeamResultRepository
 
 from .team_scoring_service import TeamScoringService
 
@@ -18,30 +15,37 @@ class TeamScoreService:
     """Service for aggregating team scores across rounds.
 
     This service handles:
-    - Loading team results for each round
+    - Loading team results for each round via ITeamResultRepository
     - Building cumulative team scores
-    - Calculating total scores based on best N rounds
-    - Persisting updated team scores
+    - Calculating total scores based on all rounds
+    - Persisting updated team scores via IScoreRepository
 
-    This replaces the Results.update_team_scores() logic,
-    following the Single Responsibility Principle.
+    Dependencies are injected so that CSV, in-memory, or database
+    implementations can be substituted without touching this class.
     """
 
     def __init__(
         self,
         config: CompetitionConfig,
         race_result_repo: IRaceResultRepository,
+        team_result_repo: ITeamResultRepository,
+        team_score_repo: IScoreRepository,
         team_scoring_service: TeamScoringService,
     ):
         """Initialize service with dependencies.
 
         Args:
             config: Competition configuration
-            race_result_repo: Repository for loading race results
+            race_result_repo: Repository for loading race results (retained for
+                future use, e.g. recalculating team results on the fly)
+            team_result_repo: Repository for per-round team result rows
+            team_score_repo: Repository for persisting aggregated team scores
             team_scoring_service: Service for calculating team scores
         """
         self.config = config
         self.race_result_repo = race_result_repo
+        self.team_result_repo = team_result_repo
+        self.team_score_repo = team_score_repo
         self.team_scoring_service = team_scoring_service
 
     def update_team_scores_for_category(self, category_code: str) -> None:
@@ -52,48 +56,30 @@ class TeamScoreService:
         """
         logger.info(f"Updating team scores for category: {category_code}")
 
-        # Get category configuration
         category = self.config.category_config.get_category(category_code)
 
         if not category.is_team_category():
             logger.warning(f"Category {category_code} is not a team category, skipping")
             return
 
-        # Build team score map
         score_map: dict[str, Score] = {}
-
-        # Process each round
         rounds_processed = 0
-        for round_number in self.config.round_numbers:
-            # Check if team results exist for this round
-            team_results_path = self._get_team_results_path(category_code, round_number)
 
-            if not team_results_path.exists():
+        for round_number in self.config.round_numbers:
+            if not self.team_result_repo.team_results_exist(category_code, round_number):
                 logger.debug(f"No team results for {category_code} in {round_number}")
                 continue
 
             rounds_processed += 1
 
-            # Load team results for this round
-            try:
-                df = pd.read_csv(team_results_path)
-                # Normalize column names to handle both old (lowercase)
-                # and new (capitalized) formats
-                df.columns = df.columns.str.lower()
-            except Exception as e:
-                logger.error(f"Failed to read team results from {team_results_path}: {e}")
-                continue
+            rows = self.team_result_repo.load_team_results(category_code, round_number)
 
-            # Update scores for each team (now includes labels like "Oxford AC A")
-            for idx_, row in df.iterrows():
-                idx = int(idx_)  # type: ignore[arg-type]
-                # Try 'team' column first (new format with labels), fall back to 'club' (old format)
+            for idx, row in enumerate(rows):
+                # Support both "team" (new format with labels) and "club" (old format)
                 team_name = row.get("team", row.get("club", "Unknown"))
 
-                # Team round score should come from the team's calculated score.
-                # Fallback to position only for legacy files that do not include score.
                 round_score: int
-                if "score" in df.columns and pd.notna(row.get("score")):
+                if "score" in row and row["score"] not in (None, ""):
                     try:
                         round_score = int(float(row["score"]))
                     except (TypeError, ValueError):
@@ -101,29 +87,23 @@ class TeamScoreService:
                             f"Invalid score '{row.get('score')}' for {team_name} in "
                             f"{round_number}, falling back to position"
                         )
-                        round_score = int(row["pos"]) if "pos" in df.columns else idx + 1
+                        round_score = int(row["pos"]) if "pos" in row else idx + 1
                 else:
-                    round_score = int(row["pos"]) if "pos" in df.columns else idx + 1
+                    round_score = int(row["pos"]) if "pos" in row else idx + 1
 
                 if team_name not in score_map:
-                    # Create new score entry
-                    score = Score(
+                    score_map[team_name] = Score(
                         name=team_name,
-                        club=None,  # For teams, club is the name
+                        club=None,
                         category=category_code,
                         round_scores={},
                     )
-                    score_map[team_name] = score
 
-                # Add this round's team score
                 score_map[team_name].add_round_score(round_number, round_score)
 
-        # Convert to list and save
         team_scores = list(score_map.values())
 
         # Team scores use all rounds (no dropped round).
-        # Primary: total score (999999 for incomplete), secondary: more rounds
-        # first, tertiary: lower aggregate score first.
         team_scores.sort(
             key=lambda s: (
                 s.calculate_total_score(rounds_processed),
@@ -132,8 +112,7 @@ class TeamScoreService:
             )
         )
 
-        # Save updated scores
-        self._save_team_scores(category_code, team_scores)
+        self.team_score_repo.save_scores(category_code, team_scores)
         logger.info(
             f"Saved {len(team_scores)} team scores for {category_code} "
             f"({rounds_processed} rounds processed)"
@@ -141,8 +120,6 @@ class TeamScoreService:
 
     def update_all_team_categories(self) -> None:
         """Update scores for all team categories."""
-        # Note: We need to process team categories that match the original naming
-        # The original code used race names with specific mappings
         team_category_codes = [
             "U9B",
             "U9G",
@@ -162,76 +139,5 @@ class TeamScoreService:
             try:
                 self.update_team_scores_for_category(category_code)
             except ValueError as e:
-                # Category might not exist or not be a team category
                 logger.warning(f"Could not update team scores for {category_code}: {e}")
                 continue
-
-    def _get_team_results_path(self, category_code: str, round_number: str) -> Path:
-        """Get path to team results CSV file.
-
-        Args:
-            category_code: Category code
-            round_number: Round identifier
-
-        Returns:
-            Path to team results file
-        """
-        return self.config.data_base_path / round_number / "teams" / f"{category_code}.csv"
-
-    def _save_team_scores(self, category_code: str, scores: list[Score]) -> None:
-        """Save team scores to CSV file.
-
-        Args:
-            category_code: Category code
-            scores: List of Score objects
-        """
-        output_path = self.config.data_base_path / "scores" / "teams" / f"{category_code}.csv"
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # League rule: total is based on best (n-1) rounds, where n is the
-        # number of rounds that have data for this category.
-        rounds_with_data = {
-            round_num
-            for score in scores
-            for round_num in self.config.round_numbers
-            if round_num in score.round_scores
-        }
-        rounds_available = len(rounds_with_data)
-        # Team scores use all rounds (no dropped round).
-        rounds_to_count = rounds_available
-
-        # Convert to DataFrame
-        data = []
-        for score in scores:
-            row = {
-                "Team": score.name,  # Now includes label like "Oxford AC A"
-            }
-
-            # Add round scores
-            for round_num in self.config.round_numbers:
-                if round_num in score.round_scores:
-                    row[round_num] = str(score.round_scores[round_num])
-                else:
-                    row[round_num] = ""
-
-            # Calculate total from all rounds.
-            total = score.calculate_total_score(rounds_to_count)
-            row["score"] = "" if total > 99999 else str(total)
-
-            data.append(row)
-
-        df = pd.DataFrame(data)
-
-        # Ensure columns are in correct order
-        columns = ["Team"] + self.config.round_numbers + ["score"]
-        for col in columns:
-            if col not in df.columns:
-                df[col] = ""
-
-        df = df[columns]
-        try:
-            df.to_csv(output_path, index=False)
-            logger.debug(f"Saved team scores to {output_path}")
-        except Exception as e:
-            logger.error(f"Failed to save team scores to {output_path}: {e}")
-            raise OSError(f"Failed to save team scores to {output_path}: {e}") from e
