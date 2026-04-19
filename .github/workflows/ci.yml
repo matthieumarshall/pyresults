@@ -46,34 +46,39 @@ jobs:
   security:
     name: Security scan
     runs-on: ubuntu-latest
-    permissions:
-      security-events: write  # required to upload SARIF to the Security tab
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - uses: astral-sh/setup-uv@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      # osv-scanner (https://github.com/google/osv-scanner) is a free, open-source
-      # tool from Google that checks for known CVEs via the OSV advisory DB.
-      # It scans uv.lock directly and outputs SARIF natively.
-      # --continue-on-error so the SARIF upload step always runs even when
-      # vulnerabilities are found (osv-scanner exits non-zero in that case).
-      - name: Install osv-scanner
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies
+        run: uv sync --group dev
+
+      - name: pip-audit - Check for vulnerable dependencies
+        run: uv run pip-audit || exit 1
+
+      - name: bandit - Python SAST scan
         run: |
-          curl -sSfL https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 -o osv-scanner
-          chmod +x osv-scanner
+          uv run bandit -r pyresults/ -ll --skip B101 -f json -o bandit-report.json || true
+          uv run bandit -r pyresults/ -ll --skip B101
 
-      - name: Scan for vulnerabilities with osv-scanner
-        run: ./osv-scanner --lockfile uv.lock --format sarif --output osv-scanner.sarif
-        continue-on-error: true
+      - name: semgrep - OWASP & Python rule scan
+        run: uv run semgrep scan --config p/owasp-top-ten --config p/python pyresults/ --error
 
-      - name: Upload SARIF to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+      - name: Upload security artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
         with:
-          sarif_file: osv-scanner.sarif
-          category: osv-scanner
+          name: security-reports
+          path: bandit-report.json
+          retention-days: 30
 
   test:
     name: Test & coverage
