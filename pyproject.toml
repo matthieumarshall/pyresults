@@ -20,7 +20,7 @@ output = [
 dev = [
     "hatch>=1.14.0",
     "pyfakefs>=5.7.4",
-    "pytest>=8.3.4",
+    "pytest>=9.0.3",
     "pytest-cov>=6.0.0",
     "ruff>=0.9.5",
     "pre-commit>=3.0.0",
@@ -87,3 +87,16 @@ python = ".venv"
 
 [tool.ty.analysis]
 allowed-unresolved-imports = []
+
+[tool.uv]
+constraint-dependencies = [
+    # Minimum safe versions resolving pip-audit CVEs in transitive dependencies.
+    # Bump these when new CVEs are found; never lower them.
+    "cryptography>=46.0.6",  # GHSA-r6ph-v2qm-q3c2, GHSA-m959-cc7f-wv43
+    "filelock>=3.20.3",      # GHSA-w853-jp5j-5j7f, GHSA-qmgc-5h2g-mvrw
+    "h11>=0.16.0",           # GHSA-vqfr-h8mv-ghfj
+    "jaraco-context>=6.1.0", # GHSA-58pv-8j8x-9vj2
+    "pygments>=2.20.0",      # GHSA-5239-wwwm-4pmq
+    "uv>=0.11.6",            # GHSA-8qf3-x8v5-2pj8, GHSA-w476-p2h3-79g9, GHSA-pqhf-p39g-3x64, GHSA-pjjw-68hj-v9mw (transitive via hatch)
+    "virtualenv>=20.36.1",   # GHSA-597g-3phw-6986
+]
