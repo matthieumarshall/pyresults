@@ -31,11 +31,7 @@ class InMemoryRaceResultRepository(IRaceResultRepository):
         return (race_name, round_number) in self._store
 
     def get_available_races(self, round_number: str) -> list[str]:
-        return [
-            race_name
-            for (race_name, rn) in self._store
-            if rn == round_number
-        ]
+        return [race_name for (race_name, rn) in self._store if rn == round_number]
 
     # ------------------------------------------------------------------
     # Convenience helpers (not part of interface)
@@ -87,9 +83,7 @@ class InMemoryTeamResultRepository(ITeamResultRepository):
     def load_team_results(self, category_code: str, round_number: str) -> list[dict]:
         return list(self._store.get((category_code, round_number), []))
 
-    def save_team_results(
-        self, category_code: str, round_number: str, data: list[dict]
-    ) -> None:
+    def save_team_results(self, category_code: str, round_number: str, data: list[dict]) -> None:
         # Normalise keys to lower-case so that TeamScoreService can read them
         # with lowercase lookups (.get("team"), .get("pos"), .get("score")),
         # matching the behaviour of CsvTeamResultRepository which applies

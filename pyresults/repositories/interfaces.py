@@ -121,9 +121,7 @@ class ITeamResultRepository(ABC):
         pass
 
     @abstractmethod
-    def save_team_results(
-        self, category_code: str, round_number: str, data: list[dict]
-    ) -> None:
+    def save_team_results(self, category_code: str, round_number: str, data: list[dict]) -> None:
         """Save team result rows for a category and round.
 
         Args:

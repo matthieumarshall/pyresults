@@ -67,9 +67,7 @@ class CsvTeamResultRepository(ITeamResultRepository):
             logger.error(f"Failed to read team results from {file_path}: {exc}")
             raise OSError(f"Failed to read team results from {file_path}: {exc}") from exc
 
-    def save_team_results(
-        self, category_code: str, round_number: str, data: list[dict]
-    ) -> None:
+    def save_team_results(self, category_code: str, round_number: str, data: list[dict]) -> None:
         """Save team result rows to CSV.
 
         Args:

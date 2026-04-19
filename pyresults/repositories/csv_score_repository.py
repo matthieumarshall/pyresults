@@ -7,8 +7,7 @@ try:
     import pandas as pd
 except ImportError as _pandas_err:
     raise ImportError(
-        "pandas is required for CsvScoreRepository. "
-        "Install with: pip install 'pyresults[output]'"
+        "pandas is required for CsvScoreRepository. Install with: pip install 'pyresults[output]'"
     ) from _pandas_err
 
 from pyresults.domain import Score

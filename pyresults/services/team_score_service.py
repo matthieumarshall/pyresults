@@ -1,4 +1,4 @@
-﻿"""Team score aggregation service."""
+"""Team score aggregation service."""
 
 import logging
 
