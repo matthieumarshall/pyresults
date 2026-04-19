@@ -3,7 +3,12 @@
 import logging
 from pathlib import Path
 
-import pandas as pd
+try:
+    import pandas as pd
+except ImportError as _pandas_err:
+    raise ImportError(
+        "pandas is required for CsvScoreRepository. Install with: pip install 'pyresults[output]'"
+    ) from _pandas_err
 
 from pyresults.domain import Score
 
@@ -19,15 +24,19 @@ class CsvScoreRepository(IScoreRepository):
     CSV files for storage, following the Dependency Inversion Principle.
     """
 
-    def __init__(self, base_path: Path, round_numbers: list[str]):
+    def __init__(self, base_path: Path, round_numbers: list[str], rounds_to_drop: int = 1):
         """Initialize repository with base scores path.
 
         Args:
             base_path: Base directory containing scores (e.g., ./data/scores)
             round_numbers: List of valid round identifiers (e.g., ["r1", "r2", ...])
+            rounds_to_drop: Number of worst rounds to drop when calculating totals.
+                Defaults to 1 (individual scoring: best N-1 of N rounds).
+                Set to 0 for team scoring where all rounds count.
         """
         self.base_path = base_path
         self.round_numbers = round_numbers
+        self.rounds_to_drop = rounds_to_drop
 
     def load_scores(self, category: str) -> list[Score]:
         """Load all scores for a category from CSV file.
@@ -81,8 +90,7 @@ class CsvScoreRepository(IScoreRepository):
 
         logger.debug(f"Saving {len(scores)} scores for {category} to {file_path}")
 
-        # League rule: total is based on best (n-1) rounds, where n is the
-        # number of rounds that have data for this category.
+        # Calculate how many rounds to count towards the total.
         rounds_with_data = {
             round_num
             for score in scores
@@ -90,7 +98,7 @@ class CsvScoreRepository(IScoreRepository):
             if round_num in score.round_scores
         }
         rounds_available = len(rounds_with_data)
-        rounds_to_count = rounds_available if rounds_available <= 1 else rounds_available - 1
+        rounds_to_count = max(1, rounds_available - self.rounds_to_drop)
 
         # Convert domain objects to DataFrame
         data = []

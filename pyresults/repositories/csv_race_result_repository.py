@@ -3,7 +3,13 @@
 import logging
 from pathlib import Path
 
-import pandas as pd
+try:
+    import pandas as pd
+except ImportError as _pandas_err:
+    raise ImportError(
+        "pandas is required for CsvRaceResultRepository. "
+        "Install with: pip install 'pyresults[output]'"
+    ) from _pandas_err
 
 from pyresults.domain import Athlete, DomainRaceResult
 
