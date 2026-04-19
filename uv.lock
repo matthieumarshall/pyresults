@@ -1216,6 +1216,19 @@ wheels = [
 ]
 
 [[package]]
+name = "pip-licenses"
+version = "5.5.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "prettytable" },
+    { name = "tomli", marker = "python_full_version < '3.11'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/7d/18/ddd93af610a04f56a51a27095ddfe55238e1ec236f6758730a0d2c0b49f2/pip_licenses-5.5.5.tar.gz", hash = "sha256:60750c006adf7a0910347b726e8ee9fee3bc8d2e7c8307a5c4ec0776c8e2a276", size = 54955, upload-time = "2026-03-28T22:12:56.48Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2a/9a/6acfdb8d463eac7cdae7534d35d72237eca63f5fbafe797289d8a5fae447/pip_licenses-5.5.5-py3-none-any.whl", hash = "sha256:f4c4c6d9e6a03612cf59f29f19dc8ab54904d82e055b8e191498f2279a224e14", size = 23247, upload-time = "2026-03-28T22:12:54.89Z" },
+]
+
+[[package]]
 name = "pip-requirements-parser"
 version = "32.0.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1260,6 +1273,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/2a/13/b62d075317d8686071eb843f0bb1f195eb332f48869d3c31a4c6f1e063ac/pre_commit-4.1.0.tar.gz", hash = "sha256:ae3f018575a588e30dfddfab9a05448bfbd6b73d78709617b5a2b853549716d4", size = 193330, upload-time = "2025-01-20T18:31:48.681Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/43/b3/df14c580d82b9627d173ceea305ba898dca135feb360b6d84019d0803d3b/pre_commit-4.1.0-py2.py3-none-any.whl", hash = "sha256:d29e7cb346295bcc1cc75fc3e92e343495e3ea0196c9ec6ba53f49f10ab6ae7b", size = 220560, upload-time = "2025-01-20T18:31:47.319Z" },
+]
+
+[[package]]
+name = "prettytable"
+version = "3.17.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "wcwidth" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/79/45/b0847d88d6cfeb4413566738c8bbf1e1995fad3d42515327ff32cc1eb578/prettytable-3.17.0.tar.gz", hash = "sha256:59f2590776527f3c9e8cf9fe7b66dd215837cca96a9c39567414cbc632e8ddb0", size = 67892, upload-time = "2025-11-14T17:33:20.212Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ee/8c/83087ebc47ab0396ce092363001fa37c17153119ee282700c0713a195853/prettytable-3.17.0-py3-none-any.whl", hash = "sha256:aad69b294ddbe3e1f95ef8886a060ed1666a0b83018bbf56295f6f226c43d287", size = 34433, upload-time = "2025-11-14T17:33:19.093Z" },
 ]
 
 [[package]]
@@ -1520,6 +1545,7 @@ dev = [
     { name = "openpyxl" },
     { name = "pandas" },
     { name = "pip-audit" },
+    { name = "pip-licenses" },
     { name = "pre-commit" },
     { name = "pyfakefs" },
     { name = "pytest" },
@@ -1548,6 +1574,7 @@ dev = [
     { name = "openpyxl", specifier = "==3.1.2" },
     { name = "pandas", specifier = "==2.2.3" },
     { name = "pip-audit", specifier = ">=2.7.0" },
+    { name = "pip-licenses", specifier = ">=4.3" },
     { name = "pre-commit", specifier = ">=3.0.0" },
     { name = "pyfakefs", specifier = ">=5.7.4" },
     { name = "pytest", specifier = ">=8.3.4" },
@@ -2274,6 +2301,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ea/c4/55e0d36da61d7b8b2a49fd273e6b296fd5e8471c72ebbe438635d1af3968/wcmatch-8.5.2.tar.gz", hash = "sha256:a70222b86dea82fb382dd87b73278c10756c138bd6f8f714e2183128887b9eb2", size = 114983, upload-time = "2024-05-15T12:51:08.054Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/09/78/533ef890536e5ba0fd4f7df37482b5800ecaaceae9afc30978a1a7f88ff1/wcmatch-8.5.2-py3-none-any.whl", hash = "sha256:17d3ad3758f9d0b5b4dedc770b65420d4dac62e680229c287bf24c9db856a478", size = 39397, upload-time = "2024-05-15T12:51:06.2Z" },
+]
+
+[[package]]
+name = "wcwidth"
+version = "0.6.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/35/a2/8e3becb46433538a38726c948d3399905a4c7cabd0df578ede5dc51f0ec2/wcwidth-0.6.0.tar.gz", hash = "sha256:cdc4e4262d6ef9a1a57e018384cbeb1208d8abbc64176027e2c2455c81313159", size = 159684, upload-time = "2026-02-06T19:19:40.919Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/68/5a/199c59e0a824a3db2b89c5d2dade7ab5f9624dbf6448dc291b46d5ec94d3/wcwidth-0.6.0-py3-none-any.whl", hash = "sha256:1a3a1e510b553315f8e146c54764f4fb6264ffad731b3d78088cdb1478ffbdad", size = 94189, upload-time = "2026-02-06T19:19:39.646Z" },
 ]
 
 [[package]]
